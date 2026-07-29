@@ -1,22 +1,38 @@
-import { Outlet, Link } from 'react-router-dom';
+import { Outlet, Link as RouterLink } from 'react-router-dom';
+import { AppBar, Toolbar, Typography, Button, Container, Box } from '@mui/material';
 
 export default function Layout() {
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', flexDirection: 'column' }}>
-      <header style={{ padding: '1rem', background: '#eee', borderBottom: '1px solid #ccc' }}>
-        <nav style={{ display: 'flex', gap: '1rem' }}>
-          <Link to="/">Dashboard</Link>
-          <Link to="/orders">Orders</Link>
-          <Link to="/predictions">Predictions</Link>
-          <Link to="/login" style={{ marginLeft: 'auto' }}>Login</Link>
-        </nav>
-      </header>
-      <main style={{ flex: 1, padding: '2rem' }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', bgcolor: 'background.default' }}>
+      <AppBar position="static" color="primary" elevation={0}>
+        <Toolbar>
+          <Typography variant="h6" component="div" sx={{ flexGrow: 1, fontWeight: 'bold' }}>
+            ERP Delivery Prediction
+          </Typography>
+          <Button color="inherit" component={RouterLink} to="/">
+            Dashboard
+          </Button>
+          <Button color="inherit" component={RouterLink} to="/orders">
+            Orders
+          </Button>
+          <Button color="inherit" component={RouterLink} to="/predictions">
+            Predictions
+          </Button>
+          <Button color="inherit" component={RouterLink} to="/login" sx={{ ml: 2, border: '1px solid rgba(255,255,255,0.5)' }}>
+            Login
+          </Button>
+        </Toolbar>
+      </AppBar>
+      
+      <Container component="main" sx={{ flexGrow: 1, py: 4, display: 'flex', flexDirection: 'column' }}>
         <Outlet />
-      </main>
-      <footer style={{ padding: '1rem', background: '#eee', textAlign: 'center' }}>
-        ERP Delivery Prediction System
-      </footer>
-    </div>
+      </Container>
+      
+      <Box component="footer" sx={{ py: 3, textAlign: 'center', bgcolor: 'background.paper', borderTop: '1px solid', borderColor: 'divider' }}>
+        <Typography variant="body2" color="text.secondary">
+          © {new Date().getFullYear()} ERP Delivery Prediction System. AI-Powered.
+        </Typography>
+      </Box>
+    </Box>
   );
 }
