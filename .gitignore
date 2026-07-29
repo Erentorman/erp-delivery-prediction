@@ -7,3 +7,8 @@ obj/
 .vs/
 .idea/
 *.swp
+
+## Python
+venv/
+__pycache__/
+*.pyc
