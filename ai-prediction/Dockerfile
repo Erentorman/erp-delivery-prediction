@@ -1,21 +1,28 @@
 # ------------------------------------------------------------
-# ai-prediction — Placeholder Dockerfile (T-104 Day-1 skeleton)
+# ai-prediction — Dockerfile (T-104 skeleton, wired to T-105 sources)
 #
-# TODO (T-105): Replace this placeholder with the real build
-# once the FastAPI service and model artifact are in place:
+# T-105 has provided:
+#   main.py              — FastAPI app with /health endpoint
+#   requirements.txt     — fastapi>=0.111.0, uvicorn>=0.30.1
+#   model/__init__.py    — model package stub
+#   preprocessing/__init__.py — preprocessing package stub
 #
-#   FROM python:3.14-slim
-#   WORKDIR /app
-#   COPY requirements.txt .
-#   RUN pip install --no-cache-dir -r requirements.txt
-#   COPY . .
-#   CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# TODO (T-105 in-progress):
+#   POST /predict endpoint — accepts feature payload,
+#                            returns working_lead_time_minutes
+#   Model artifact         — /app/models/model.pkl
 #
 # Required endpoints (SAD §9.11):
-#   POST /predict  — accepts feature payload, returns working_lead_time_minutes
-#   GET  /health   — returns {"status": "ok", "model_version": "...", ...}
+#   GET  /health   — live (returns {"status": "healthy"})
+#   POST /predict  — pending T-105 completion
 # ------------------------------------------------------------
-FROM python:3.11-slim
+FROM python:3.14-slim
 WORKDIR /app
 
-CMD ["sh", "-c", "echo '[ai-prediction] Placeholder container — real FastAPI service not yet implemented (T-105). Sleeping.' && sleep infinity"]
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
+
+EXPOSE 8000
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

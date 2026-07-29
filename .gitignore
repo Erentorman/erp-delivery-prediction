@@ -13,3 +13,8 @@ obj/
 
 ## Docker
 docker-compose.override.yml
+
+## Python
+venv/
+__pycache__/
+*.pyc

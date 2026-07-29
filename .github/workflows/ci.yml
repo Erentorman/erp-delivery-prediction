@@ -1,0 +1,34 @@
+name: CI - .NET Build and Test
+
+on:
+  push:
+    branches:
+      - develop
+  pull_request:
+    branches:
+      - develop
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Restore dependencies
+        run: dotnet restore ErpDeliveryPrediction.sln
+
+      - name: Build solution
+        run: dotnet build ErpDeliveryPrediction.sln --configuration Release --no-restore
+
+      - name: Run tests
+        run: dotnet test ErpDeliveryPrediction.sln --configuration Release --no-build --no-restore
