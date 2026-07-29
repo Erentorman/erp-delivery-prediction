@@ -30,6 +30,12 @@ services:
     ports:
       - "${FRONTEND_PORT:-3000}:80"
     environment:
+      # Placeholder for the future React/Vite build.
+      # VITE_* variables are build-time values: Vite inlines them
+      # into the bundle during `npm run build`, so setting one here
+      # as a runtime variable has no effect on the served assets.
+      # The real multi-stage frontend Dockerfile will receive
+      # VITE_API_BASE_URL during its build stage in T-105.
       - VITE_API_BASE_URL=${VITE_API_BASE_URL:-http://localhost:5000}
     networks:
       - erp-net
@@ -76,7 +82,7 @@ services:
     restart: unless-stopped
 
   # ----------------------------------------------------------
-  # postgres — Application database (PostgreSQL 16)
+  # postgres — Application database (PostgreSQL 18)
   # NOT publicly exposed.
   # Health check ensures dependents wait until DB is ready.
   # ----------------------------------------------------------
@@ -121,7 +127,8 @@ services:
   # ----------------------------------------------------------
   # ai-prediction — Python + FastAPI AI Prediction Service
   # NOT publicly exposed.
-  # Exposes /predict and /health endpoints on internal port 8000.
+  # Exposes /health endpoint on internal port 8000.
+  # /predict endpoint will be added once T-105 is completed.
   # ----------------------------------------------------------
   ai-prediction:
     build:
