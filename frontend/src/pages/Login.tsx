@@ -19,22 +19,18 @@ export default function Login() {
     setLoading(true);
 
     try {
-      // MVP: Attempt to hit the actual API
       const response = await apiClient.post('/api/auth/login', { username, password });
-      
-      // Assuming the response contains { token: '...' }
-      if (response.data && response.data.token) {
+
+      if (response.data?.token) {
         login(response.data.token);
         navigate('/');
       } else {
-        // Fallback for demo if API succeeds but returns no token
-        login('demo-token');
-        navigate('/');
+        // API başardı ama token dönmedi — bu sunucu tarafı bir hatadır
+        setError('Sunucudan geçerli bir oturum tokeni alınamadı. Lütfen tekrar deneyin.');
       }
     } catch (err: any) {
       console.error('Login error:', err);
-      // As per AC: show clear error to user on invalid credentials
-      if (err.response && err.response.status === 401) {
+      if (err.response?.status === 401) {
         setError('Geçersiz kullanıcı adı veya şifre.');
       } else {
         setError('Giriş yapılırken bir hata oluştu. Lütfen tekrar deneyin.');

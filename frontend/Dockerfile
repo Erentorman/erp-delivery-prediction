@@ -11,7 +11,13 @@ RUN npm ci
 # Copy source code
 COPY . .
 
-# Build the Vite app
+# Receive build-time env from docker-compose build.args.
+# VITE_* variables are inlined statically by Vite at build time;
+# passing them as runtime environment variables has no effect.
+ARG VITE_API_BASE_URL=http://localhost:5000
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
+
+# Build the Vite app (VITE_API_BASE_URL is now available to Vite)
 RUN npm run build
 
 # Stage 2: Serve

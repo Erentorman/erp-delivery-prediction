@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { authEmitter, AUTH_EVENTS } from './authEmitter';
 
 // Create an axios instance with a base URL
 export const apiClient = axios.create({
@@ -22,15 +23,17 @@ apiClient.interceptors.request.use(
   }
 );
 
-// Response interceptor to handle errors globally
+// Response interceptor to handle errors globally.
+// On 401: fire an `unauthorized` event on authEmitter so that AuthProvider
+// (which has access to useNavigate) can redirect without a full-page reload.
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // If unauthorized, clear the token and force reload to redirect to login
       localStorage.removeItem('token');
-      window.location.href = '/login';
+      authEmitter.dispatchEvent(new Event(AUTH_EVENTS.UNAUTHORIZED));
     }
     return Promise.reject(error);
   }
 );
+

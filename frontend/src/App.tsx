@@ -55,8 +55,8 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <AuthProvider>
-        <Router>
+      <Router>
+        <AuthProvider>
           <Routes>
             <Route path="/login" element={<Login />} />
             {/* Protected Routes */}
@@ -70,10 +70,11 @@ function App() {
             {/* Catch all */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
-        </Router>
-      </AuthProvider>
+        </AuthProvider>
+      </Router>
     </ThemeProvider>
   );
 }
 
 export default App;
+
