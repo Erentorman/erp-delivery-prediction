@@ -7,3 +7,9 @@ obj/
 .vs/
 .idea/
 *.swp
+
+## Secrets — never commit the real env file
+.env
+
+## Docker
+docker-compose.override.yml
