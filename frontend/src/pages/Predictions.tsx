@@ -1,4 +1,4 @@
-import { Typography, Box, Grid, Card, CardContent, Chip } from '@mui/material';
+import { Typography, Box, Card, CardContent, Chip } from '@mui/material';
 
 export default function Predictions() {
   return (
@@ -10,8 +10,8 @@ export default function Predictions() {
         Hybrid Prediction Results (Rule-Based + AI)
       </Typography>
 
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={4}>
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' }, gap: 3 }}>
+        <Box>
           <Card variant="outlined" sx={{ borderColor: 'primary.main', borderWidth: 2 }}>
             <CardContent>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
@@ -26,9 +26,9 @@ export default function Predictions() {
               </Typography>
             </CardContent>
           </Card>
-        </Grid>
+        </Box>
 
-        <Grid item xs={12} md={4}>
+        <Box>
           <Card variant="outlined">
             <CardContent>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
@@ -43,9 +43,9 @@ export default function Predictions() {
               </Typography>
             </CardContent>
           </Card>
-        </Grid>
+        </Box>
 
-        <Grid item xs={12} md={4}>
+        <Box>
           <Card variant="outlined">
             <CardContent>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
@@ -60,8 +60,8 @@ export default function Predictions() {
               </Typography>
             </CardContent>
           </Card>
-        </Grid>
-      </Grid>
+        </Box>
+      </Box>
     </Box>
   );
 }

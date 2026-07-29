@@ -1,4 +1,4 @@
-import { Typography, Grid, Card, CardContent, Box } from '@mui/material';
+import { Typography, Card, CardContent, Box } from '@mui/material';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 
 export default function Dashboard() {
@@ -11,8 +11,8 @@ export default function Dashboard() {
         </Typography>
       </Box>
       
-      <Grid container spacing={4}>
-        <Grid item xs={12} md={4}>
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' }, gap: 4 }}>
+        <Box>
           <Card>
             <CardContent>
               <Typography color="textSecondary" gutterBottom>
@@ -23,8 +23,8 @@ export default function Dashboard() {
               </Typography>
             </CardContent>
           </Card>
-        </Grid>
-        <Grid item xs={12} md={4}>
+        </Box>
+        <Box>
           <Card>
             <CardContent>
               <Typography color="textSecondary" gutterBottom>
@@ -35,8 +35,8 @@ export default function Dashboard() {
               </Typography>
             </CardContent>
           </Card>
-        </Grid>
-        <Grid item xs={12} md={4}>
+        </Box>
+        <Box>
           <Card>
             <CardContent>
               <Typography color="textSecondary" gutterBottom>
@@ -47,8 +47,8 @@ export default function Dashboard() {
               </Typography>
             </CardContent>
           </Card>
-        </Grid>
-      </Grid>
+        </Box>
+      </Box>
     </Box>
   );
 }
