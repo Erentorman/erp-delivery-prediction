@@ -8,6 +8,12 @@ obj/
 .idea/
 *.swp
 
+## Secrets — never commit the real env file
+.env
+
+## Docker
+docker-compose.override.yml
+
 ## Python
 venv/
 __pycache__/
