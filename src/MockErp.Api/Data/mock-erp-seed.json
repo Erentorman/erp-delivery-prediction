@@ -1,0 +1,64 @@
+{
+  "orders": [
+    {
+      "id": "ORD-1001",
+      "productId": "PROD-BIKE-01",
+      "quantity": 12,
+      "requestedDeliveryDate": "2026-08-15"
+    },
+    {
+      "id": "ORD-1002",
+      "productId": "PROD-DESK-01",
+      "quantity": 8,
+      "requestedDeliveryDate": "2026-08-22"
+    }
+  ],
+  "products": [
+    {
+      "id": "PROD-BIKE-01",
+      "name": "Mock Commuter Bicycle",
+      "unit": "EA"
+    },
+    {
+      "id": "PROD-DESK-01",
+      "name": "Mock Adjustable Desk",
+      "unit": "EA"
+    }
+  ],
+  "boms": [
+    {
+      "productId": "PROD-BIKE-01",
+      "lines": [
+        {
+          "componentId": "COMP-FRAME-01",
+          "description": "Aluminium bicycle frame",
+          "quantity": 1,
+          "unit": "EA"
+        },
+        {
+          "componentId": "COMP-WHEEL-01",
+          "description": "700C wheel assembly",
+          "quantity": 2,
+          "unit": "EA"
+        }
+      ]
+    },
+    {
+      "productId": "PROD-DESK-01",
+      "lines": [
+        {
+          "componentId": "COMP-TOP-01",
+          "description": "Desk top panel",
+          "quantity": 1,
+          "unit": "EA"
+        },
+        {
+          "componentId": "COMP-LEG-01",
+          "description": "Height-adjustable leg assembly",
+          "quantity": 2,
+          "unit": "EA"
+        }
+      ]
+    }
+  ]
+}
