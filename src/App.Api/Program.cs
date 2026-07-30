@@ -1,4 +1,6 @@
+using App.Application.IntegrationLogging;
 using App.Persistence;
+using App.Persistence.IntegrationLogging;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -13,6 +15,7 @@ builder.Services.AddSwaggerGen();
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("Connection string 'DefaultConnection' is not configured.");
 builder.Services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connectionString));
+builder.Services.AddScoped<IIntegrationLogWriter, IntegrationLogWriter>();
 
 var app = builder.Build();
 
