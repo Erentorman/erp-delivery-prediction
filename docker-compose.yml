@@ -27,22 +27,18 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        # VITE_* variables are build-time values: Vite inlines them
+        # statically into the bundle during `npm run build`.
+        # They MUST be passed as Docker build ARGs, NOT runtime env vars.
+        # See frontend/Dockerfile for the ARG → ENV → RUN npm run build chain.
+        - VITE_API_BASE_URL=${VITE_API_BASE_URL:-http://localhost:5000}
     ports:
       - "${FRONTEND_PORT:-3000}:80"
-    environment:
-      # Placeholder for the future React/Vite build.
-      # VITE_* variables are build-time values: Vite inlines them
-      # into the bundle during `npm run build`, so setting one here
-      # as a runtime variable has no effect on the served assets.
-      # The real multi-stage frontend Dockerfile will receive
-      # VITE_API_BASE_URL during its build stage in T-105.
-      - VITE_API_BASE_URL=${VITE_API_BASE_URL:-http://localhost:5000}
     networks:
       - erp-net
     depends_on:
       - api
-    # TODO (T-105): replace with production-ready Nginx config once
-    #               the React build pipeline is finalized.
     restart: unless-stopped
 
   # ----------------------------------------------------------
