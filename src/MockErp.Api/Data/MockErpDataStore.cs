@@ -14,6 +14,14 @@ public sealed class MockErpDataStore
     private readonly IReadOnlyList<MockErpProduct> _products;
     private readonly IReadOnlyDictionary<string, MockErpProduct> _productsById;
     private readonly IReadOnlyDictionary<string, IReadOnlyList<MockErpBomLine>> _bomsByProductId;
+    private readonly IReadOnlyList<MockErpStockLevel> _stockLevels;
+    private readonly IReadOnlyList<MockErpOpenPurchaseOrder> _openPurchaseOrders;
+    private readonly IReadOnlyList<MockErpWorkOrder> _workOrders;
+    private readonly IReadOnlyList<MockErpWorkCenterCapacity> _workCenters;
+    private readonly IReadOnlyList<MockErpWorkingShift> _shifts;
+    private readonly IReadOnlyList<MockErpHoliday> _holidays;
+    private readonly IReadOnlyList<MockErpPlannedDowntime> _plannedDowntimes;
+    private readonly IReadOnlyList<MockErpShippingDuration> _shippingDurations;
 
     public MockErpDataStore(IHostEnvironment environment)
         : this(Path.Combine(environment.ContentRootPath, SeedRelativePath))
@@ -41,10 +49,13 @@ public sealed class MockErpDataStore
                 exception);
         }
 
-        if (seed.Orders is null || seed.Products is null || seed.Boms is null)
+        if (seed.Orders is null || seed.Products is null || seed.Boms is null ||
+            seed.StockLevels is null || seed.OpenPurchaseOrders is null ||
+            seed.WorkOrders is null || seed.CapacityCalendar is null ||
+            seed.ShippingDurations is null)
         {
             throw new InvalidOperationException(
-                "Mock ERP seed must contain orders, products, and boms collections.");
+                "Mock ERP seed must contain all required resource collections.");
         }
 
         EnsureUnique(seed.Orders.Select(order => order.Id), "order");
@@ -75,6 +86,26 @@ public sealed class MockErpDataStore
                         line.ComponentId, line.Description, line.Quantity, line.Unit))
                     .ToArray()),
                 StringComparer.Ordinal));
+
+        _stockLevels = ReadOnly(seed.StockLevels);
+        _openPurchaseOrders = ReadOnly(seed.OpenPurchaseOrders);
+        _workOrders = Array.AsReadOnly(seed.WorkOrders
+            .Select(workOrder => workOrder with
+            {
+                Operations = Array.AsReadOnly(workOrder.Operations
+                    .Select(operation => operation with
+                    {
+                        PredecessorOperationReferences =
+                            Array.AsReadOnly(operation.PredecessorOperationReferences.ToArray())
+                    })
+                    .ToArray())
+            })
+            .ToArray());
+        _workCenters = ReadOnly(seed.CapacityCalendar.WorkCenters);
+        _shifts = ReadOnly(seed.CapacityCalendar.Shifts);
+        _holidays = ReadOnly(seed.CapacityCalendar.Holidays);
+        _plannedDowntimes = ReadOnly(seed.CapacityCalendar.PlannedDowntimes);
+        _shippingDurations = ReadOnly(seed.ShippingDurations);
     }
 
     public IReadOnlyList<MockErpOrder> GetOrders() => _orders;
@@ -87,6 +118,81 @@ public sealed class MockErpDataStore
 
     public IReadOnlyList<MockErpBomLine> GetProductBom(string productId) =>
         _bomsByProductId.GetValueOrDefault(productId) ?? Array.Empty<MockErpBomLine>();
+
+    public IReadOnlyList<MockErpStockLevel> GetStockLevels(IEnumerable<string> productReferences) =>
+        FilterByReferences(_stockLevels, productReferences, item => item.ProductReference);
+
+    public IReadOnlyList<MockErpOpenPurchaseOrder> GetOpenPurchaseOrders(
+        IEnumerable<string> productReferences) =>
+        FilterByReferences(_openPurchaseOrders, productReferences, item => item.ProductReference);
+
+    public IReadOnlyList<MockErpWorkOrder> GetWorkOrders(
+        string orderReference,
+        IEnumerable<string> productReferences)
+    {
+        var references = ToReferenceSet(productReferences);
+        return Array.AsReadOnly(_workOrders
+            .Where(item =>
+                string.Equals(item.OrderReference, orderReference, StringComparison.Ordinal) &&
+                references.Contains(item.ProductReference))
+            .ToArray());
+    }
+
+    public MockErpCapacityAndCalendar GetCapacityAndCalendar(
+        IEnumerable<string> workCenterReferences,
+        DateTimeOffset rangeStart,
+        DateTimeOffset rangeEnd)
+    {
+        var references = ToReferenceSet(workCenterReferences);
+        var startDate = DateOnly.FromDateTime(rangeStart.Date);
+        var endDate = DateOnly.FromDateTime(rangeEnd.Date);
+
+        return new MockErpCapacityAndCalendar(
+            rangeStart,
+            rangeEnd,
+            Filter(_workCenters, item => references.Contains(item.WorkCenterReference)),
+            Filter(_shifts, item =>
+                references.Contains(item.WorkCenterReference) &&
+                item.End >= rangeStart && item.Start <= rangeEnd),
+            Filter(_holidays, item =>
+                (item.WorkCenterReference is null || references.Contains(item.WorkCenterReference)) &&
+                item.Date >= startDate && item.Date <= endDate),
+            Filter(_plannedDowntimes, item =>
+                references.Contains(item.WorkCenterReference) &&
+                item.End >= rangeStart && item.Start <= rangeEnd));
+    }
+
+    public MockErpShippingDuration? GetShippingDuration(
+        string originReference,
+        string destinationReference,
+        string shippingProfileReference) =>
+        _shippingDurations.FirstOrDefault(item =>
+            string.Equals(item.OriginReference, originReference, StringComparison.Ordinal) &&
+            string.Equals(item.DestinationReference, destinationReference, StringComparison.Ordinal) &&
+            string.Equals(
+                item.ShippingProfileReference,
+                shippingProfileReference,
+                StringComparison.Ordinal));
+
+    private static IReadOnlyList<T> ReadOnly<T>(IEnumerable<T> items) =>
+        Array.AsReadOnly(items.ToArray());
+
+    private static IReadOnlyList<T> Filter<T>(
+        IEnumerable<T> items,
+        Func<T, bool> predicate) =>
+        Array.AsReadOnly(items.Where(predicate).ToArray());
+
+    private static IReadOnlyList<T> FilterByReferences<T>(
+        IEnumerable<T> items,
+        IEnumerable<string> references,
+        Func<T, string> referenceSelector)
+    {
+        var referenceSet = ToReferenceSet(references);
+        return Filter(items, item => referenceSet.Contains(referenceSelector(item)));
+    }
+
+    private static HashSet<string> ToReferenceSet(IEnumerable<string> references) =>
+        new(references, StringComparer.Ordinal);
 
     private static void EnsureUnique(IEnumerable<string> identifiers, string identifierType)
     {
@@ -104,7 +210,12 @@ public sealed class MockErpDataStore
     private sealed record SeedDocument(
         List<SeedOrder>? Orders,
         List<SeedProduct>? Products,
-        List<SeedBom>? Boms);
+        List<SeedBom>? Boms,
+        List<MockErpStockLevel>? StockLevels,
+        List<MockErpOpenPurchaseOrder>? OpenPurchaseOrders,
+        List<MockErpWorkOrder>? WorkOrders,
+        SeedCapacityCalendar? CapacityCalendar,
+        List<MockErpShippingDuration>? ShippingDurations);
 
     private sealed record SeedOrder(
         string Id,
@@ -126,4 +237,10 @@ public sealed class MockErpDataStore
         string Description,
         decimal Quantity,
         string Unit);
+
+    private sealed record SeedCapacityCalendar(
+        List<MockErpWorkCenterCapacity> WorkCenters,
+        List<MockErpWorkingShift> Shifts,
+        List<MockErpHoliday> Holidays,
+        List<MockErpPlannedDowntime> PlannedDowntimes);
 }
