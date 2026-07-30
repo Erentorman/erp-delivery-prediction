@@ -14,6 +14,8 @@ public class AppDbContext : DbContext
     public DbSet<Role> Roles => Set<Role>();
     public DbSet<UserRole> UserRoles => Set<UserRole>();
     public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();
+    public DbSet<IntegrationLog> IntegrationLogs => Set<IntegrationLog>();
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

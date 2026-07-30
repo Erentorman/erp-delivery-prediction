@@ -22,6 +22,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\App.Integration\App.Integration.csproj" />
+    <ProjectReference Include="..\..\src\App.Persistence\App.Persistence.csproj" />
     <ProjectReference Include="..\..\src\MockErp.Api\MockErp.Api.csproj" />
   </ItemGroup>
 
