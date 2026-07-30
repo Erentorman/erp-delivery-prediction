@@ -1,3 +1,4 @@
+using App.Api.ExceptionHandling;
 using App.Application.IntegrationLogging;
 using App.Persistence;
 using App.Persistence.IntegrationLogging;
@@ -12,12 +13,18 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+builder.Services.AddProblemDetails();
+
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("Connection string 'DefaultConnection' is not configured.");
 builder.Services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connectionString));
 builder.Services.AddScoped<IIntegrationLogWriter, IntegrationLogWriter>();
 
 var app = builder.Build();
+
+// Global exception handling must run before any other middleware that could throw.
+app.UseExceptionHandler();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
