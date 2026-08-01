@@ -1,0 +1,223 @@
+{
+  "orders": [
+    {
+      "id": "ORD-1001",
+      "productId": "PROD-BIKE-01",
+      "quantity": 12,
+      "requestedDeliveryDate": "2026-08-15"
+    },
+    {
+      "id": "ORD-1002",
+      "productId": "PROD-DESK-01",
+      "quantity": 8,
+      "requestedDeliveryDate": "2026-08-22"
+    }
+  ],
+  "products": [
+    {
+      "id": "PROD-BIKE-01",
+      "name": "Mock Commuter Bicycle",
+      "unit": "EA"
+    },
+    {
+      "id": "PROD-DESK-01",
+      "name": "Mock Adjustable Desk",
+      "unit": "EA"
+    }
+  ],
+  "boms": [
+    {
+      "productId": "PROD-BIKE-01",
+      "lines": [
+        {
+          "componentId": "COMP-FRAME-01",
+          "description": "Aluminium bicycle frame",
+          "quantity": 1,
+          "unit": "EA"
+        },
+        {
+          "componentId": "COMP-WHEEL-01",
+          "description": "700C wheel assembly",
+          "quantity": 2,
+          "unit": "EA"
+        }
+      ]
+    },
+    {
+      "productId": "PROD-DESK-01",
+      "lines": [
+        {
+          "componentId": "COMP-TOP-01",
+          "description": "Desk top panel",
+          "quantity": 1,
+          "unit": "EA"
+        },
+        {
+          "componentId": "COMP-LEG-01",
+          "description": "Height-adjustable leg assembly",
+          "quantity": 2,
+          "unit": "EA"
+        }
+      ]
+    }
+  ],
+  "stockLevels": [
+    {
+      "productReference": "PROD-BIKE-01",
+      "locationReference": "WH-IST-01",
+      "onHandQuantity": 20.50,
+      "reservedQuantity": 8.25,
+      "availableQuantity": 12.25
+    },
+    {
+      "productReference": "PROD-DESK-01",
+      "locationReference": "WH-ANK-01",
+      "onHandQuantity": 14.75,
+      "reservedQuantity": 2.50,
+      "availableQuantity": 12.25
+    },
+    {
+      "productReference": "COMP-WHEEL-01",
+      "locationReference": "WH-IST-01",
+      "onHandQuantity": 48.00,
+      "reservedQuantity": 12.00,
+      "availableQuantity": 36.00
+    }
+  ],
+  "openPurchaseOrders": [
+    {
+      "purchaseOrderReference": "PO-2001",
+      "productReference": "PROD-BIKE-01",
+      "openQuantity": 10.50,
+      "expectedAvailabilityDateTime": "2026-08-05T09:00:00+03:00",
+      "supplierLeadTimeMinutes": 4320,
+      "status": "Open"
+    },
+    {
+      "purchaseOrderReference": "PO-2002",
+      "productReference": "PROD-DESK-01",
+      "openQuantity": 6.25,
+      "expectedAvailabilityDateTime": "2026-08-08T14:30:00+03:00",
+      "supplierLeadTimeMinutes": 5760,
+      "status": "PartiallyReceived"
+    }
+  ],
+  "workOrders": [
+    {
+      "workOrderReference": "WO-3001",
+      "orderReference": "ORD-1001",
+      "productReference": "PROD-BIKE-01",
+      "status": "Released",
+      "operations": [
+        {
+          "operationReference": "WO-3001-OP10",
+          "operationSequence": 10,
+          "workCenterReference": "WC-ASSEMBLY-01",
+          "standardDurationMinutes": 180,
+          "remainingDurationMinutes": 120,
+          "status": "InProgress",
+          "predecessorOperationReferences": []
+        },
+        {
+          "operationReference": "WO-3001-OP20",
+          "operationSequence": 20,
+          "workCenterReference": "WC-QUALITY-01",
+          "standardDurationMinutes": 45,
+          "remainingDurationMinutes": 45,
+          "status": "Pending",
+          "predecessorOperationReferences": ["WO-3001-OP10"]
+        }
+      ]
+    },
+    {
+      "workOrderReference": "WO-3002",
+      "orderReference": "ORD-1002",
+      "productReference": "PROD-DESK-01",
+      "status": "Planned",
+      "operations": [
+        {
+          "operationReference": "WO-3002-OP10",
+          "operationSequence": 10,
+          "workCenterReference": "WC-ASSEMBLY-01",
+          "standardDurationMinutes": 240,
+          "remainingDurationMinutes": 240,
+          "status": "Pending",
+          "predecessorOperationReferences": []
+        }
+      ]
+    }
+  ],
+  "capacityCalendar": {
+    "workCenters": [
+      {
+        "workCenterReference": "WC-ASSEMBLY-01",
+        "capacityMinutes": 960,
+        "availableCapacityMinutes": 720,
+        "currentLoadMinutes": 240
+      },
+      {
+        "workCenterReference": "WC-QUALITY-01",
+        "capacityMinutes": 480,
+        "availableCapacityMinutes": 360,
+        "currentLoadMinutes": 120
+      }
+    ],
+    "shifts": [
+      {
+        "workCenterReference": "WC-ASSEMBLY-01",
+        "start": "2026-08-03T08:00:00+03:00",
+        "end": "2026-08-03T16:00:00+03:00"
+      },
+      {
+        "workCenterReference": "WC-QUALITY-01",
+        "start": "2026-08-03T09:00:00+03:00",
+        "end": "2026-08-03T17:00:00+03:00"
+      },
+      {
+        "workCenterReference": "WC-ASSEMBLY-01",
+        "start": "2026-08-04T08:00:00+03:00",
+        "end": "2026-08-04T16:00:00+03:00"
+      }
+    ],
+    "holidays": [
+      {
+        "date": "2026-08-05",
+        "workCenterReference": null
+      },
+      {
+        "date": "2026-08-06",
+        "workCenterReference": "WC-QUALITY-01"
+      }
+    ],
+    "plannedDowntimes": [
+      {
+        "workCenterReference": "WC-ASSEMBLY-01",
+        "start": "2026-08-04T12:00:00+03:00",
+        "end": "2026-08-04T13:00:00+03:00",
+        "plannedDowntimeMinutes": 60
+      },
+      {
+        "workCenterReference": "WC-QUALITY-01",
+        "start": "2026-08-03T15:00:00+03:00",
+        "end": "2026-08-03T15:30:00+03:00",
+        "plannedDowntimeMinutes": 30
+      }
+    ]
+  },
+  "shippingDurations": [
+    {
+      "originReference": "WH-IST-01",
+      "destinationReference": "CUSTOMER-ANK-01",
+      "shippingProfileReference": "STANDARD",
+      "routingReference": "ROUTE-IST-ANK",
+      "shippingDurationMinutes": 720
+    },
+    {
+      "originReference": "WH-ANK-01",
+      "destinationReference": "CUSTOMER-IZM-01",
+      "shippingProfileReference": "EXPRESS",
+      "routingReference": "ROUTE-ANK-IZM",
+      "shippingDurationMinutes": 480
+    }
+  ]
+}

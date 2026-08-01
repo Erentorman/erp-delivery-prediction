@@ -1,0 +1,27 @@
+## .NET
+bin/
+obj/
+*.user
+
+## IDE
+.vs/
+.idea/
+*.swp
+
+## Secrets — never commit the real env file
+.env
+
+## Docker
+docker-compose.override.yml
+
+## Python
+**/.venv/
+venv/
+__pycache__/
+*.pyc
+
+## ERP seed converter — local source/generated files, not committed
+tools/erp-seed-converter/*.xlsx
+tools/erp-seed-converter/*.xls
+tools/erp-seed-converter/output/
+tools/erp-seed-converter/generated/
