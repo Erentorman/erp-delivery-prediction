@@ -19,3 +19,9 @@ docker-compose.override.yml
 venv/
 __pycache__/
 *.pyc
+
+## ERP seed converter — local source/generated files, not committed
+tools/erp-seed-converter/*.xlsx
+tools/erp-seed-converter/*.xls
+tools/erp-seed-converter/output/
+tools/erp-seed-converter/generated/
