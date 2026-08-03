@@ -15,17 +15,18 @@ public sealed class MockErpControllerTests
         "mock-erp-seed.json"));
 
     [Fact]
-    public void GetOrdersReturnsExpectedCollection()
+    public void GetOrdersReturnsFullRuntimeSeedCollectionAndKnownFirstOrders()
     {
         var result = new OrdersController(_store).GetAll();
 
         var ok = Assert.IsType<OkObjectResult>(result.Result);
         var orders = Assert.IsAssignableFrom<IReadOnlyList<MockErpOrder>>(ok.Value);
-        Assert.Equal(["ORD-1001", "ORD-1002"], orders.Select(order => order.Id));
+        Assert.Equal(1000, orders.Count);
+        Assert.Equal(["SO00001", "SO00002", "SO00003"], orders.Take(3).Select(order => order.Id));
     }
 
     [Theory]
-    [InlineData("ORD-1001", true)]
+    [InlineData("SO00001", true)]
     [InlineData("ORD-UNKNOWN", false)]
     public void GetOrderReturnsExpectedStatus(string id, bool exists)
     {
@@ -36,7 +37,7 @@ public sealed class MockErpControllerTests
     }
 
     [Theory]
-    [InlineData("PROD-BIKE-01", true)]
+    [InlineData("P002", true)]
     [InlineData("PROD-UNKNOWN", false)]
     public void GetProductReturnsExpectedStatus(string id, bool exists)
     {
@@ -47,23 +48,27 @@ public sealed class MockErpControllerTests
     }
 
     [Fact]
-    public void GetKnownProductBomReturnsExpectedLines()
+    public void GetP002BomReturnsFullRuntimeSeedLines()
     {
-        var result = new ProductsController(_store).GetBom("PROD-BIKE-01");
+        var result = new ProductsController(_store).GetBom("P002");
 
         var ok = Assert.IsType<OkObjectResult>(result.Result);
         var lines = Assert.IsAssignableFrom<IReadOnlyList<MockErpBomLine>>(ok.Value);
-        Assert.Equal(["COMP-FRAME-01", "COMP-WHEEL-01"], lines.Select(line => line.ComponentId));
+        Assert.Equal(11, lines.Count);
+        Assert.Equal("MAT-AHSAP-OTURAK", lines[0].ComponentId);
+        Assert.Contains(lines, line => line.ComponentId == "MAT-AHSAP-OTURAK");
     }
 
     [Fact]
-    public void StockEndpointReturnsMatchingAndEmptyCollections()
+    public void StockEndpointReturnsP002QuantityAndUnknownEmptyCollection()
     {
         var controller = new StockLevelsController(_store);
 
         var matching = Assert.IsType<OkObjectResult>(
-            controller.Get(["PROD-BIKE-01"], default).Result);
-        Assert.Single(Assert.IsAssignableFrom<IReadOnlyList<MockErpStockLevel>>(matching.Value));
+            controller.Get(["P002"], default).Result);
+        var stock = Assert.Single(
+            Assert.IsAssignableFrom<IReadOnlyList<MockErpStockLevel>>(matching.Value));
+        Assert.Equal(500m, stock.AvailableQuantity);
 
         var empty = Assert.IsType<OkObjectResult>(
             controller.Get(["UNKNOWN"], default).Result);
@@ -71,27 +76,25 @@ public sealed class MockErpControllerTests
     }
 
     [Fact]
-    public void PurchaseOrderAndWorkOrderEndpointsReturnExpectedNestedData()
+    public void IntentionallyEmptyPurchaseOrderAndWorkOrderEndpointsReturnOkWithEmptyCollections()
     {
         var purchaseResult = Assert.IsType<OkObjectResult>(
-            new OpenPurchaseOrdersController(_store).Get(["PROD-DESK-01"], default).Result);
-        Assert.Equal(
-            "PO-2002",
-            Assert.Single(
-                Assert.IsAssignableFrom<IReadOnlyList<MockErpOpenPurchaseOrder>>(
-                    purchaseResult.Value)).PurchaseOrderReference);
+            new OpenPurchaseOrdersController(_store).Get(["P002"], default).Result);
+        var purchaseOrders = Assert.IsAssignableFrom<IReadOnlyList<MockErpOpenPurchaseOrder>>(
+            purchaseResult.Value);
+        Assert.NotNull(purchaseOrders);
+        Assert.Empty(purchaseOrders);
 
         var workResult = Assert.IsType<OkObjectResult>(
             new WorkOrdersController(_store)
-                .Get("ORD-1001", ["PROD-BIKE-01"], default).Result);
-        var workOrder = Assert.Single(
-            Assert.IsAssignableFrom<IReadOnlyList<MockErpWorkOrder>>(workResult.Value));
-        Assert.Equal(2, workOrder.Operations.Count);
-        Assert.Equal(["WO-3001-OP10"], workOrder.Operations[1].PredecessorOperationReferences);
+                .Get("SO00001", ["P002"], default).Result);
+        var workOrders = Assert.IsAssignableFrom<IReadOnlyList<MockErpWorkOrder>>(workResult.Value);
+        Assert.NotNull(workOrders);
+        Assert.Empty(workOrders);
     }
 
     [Fact]
-    public void CapacityEndpointReturnsFilteredDataAndRejectsInvalidRange()
+    public void IntentionallyEmptyCapacityEndpointReturnsOkAndRejectsInvalidRange()
     {
         var controller = new CapacityCalendarController(_store);
         var start = DateTimeOffset.Parse("2026-08-03T00:00:00+03:00");
@@ -100,10 +103,14 @@ public sealed class MockErpControllerTests
         var valid = Assert.IsType<OkObjectResult>(
             controller.Get(["WC-QUALITY-01"], start, end, default).Result);
         var calendar = Assert.IsType<MockErpCapacityAndCalendar>(valid.Value);
-        Assert.Single(calendar.WorkCenters);
-        Assert.All(
-            calendar.Shifts,
-            shift => Assert.Equal("WC-QUALITY-01", shift.WorkCenterReference));
+        Assert.NotNull(calendar.WorkCenters);
+        Assert.Empty(calendar.WorkCenters);
+        Assert.NotNull(calendar.Shifts);
+        Assert.Empty(calendar.Shifts);
+        Assert.NotNull(calendar.Holidays);
+        Assert.Empty(calendar.Holidays);
+        Assert.NotNull(calendar.PlannedDowntimes);
+        Assert.Empty(calendar.PlannedDowntimes);
 
         Assert.IsType<ObjectResult>(
             controller.Get(["WC-QUALITY-01"], end, start, default).Result);
@@ -111,13 +118,12 @@ public sealed class MockErpControllerTests
     }
 
     [Fact]
-    public void ShippingEndpointReturnsKnownRouteAndNotFoundForUnknownRoute()
+    public void IntentionallyEmptyShippingEndpointReturnsNotFound()
     {
         var controller = new ShippingDurationsController(_store);
 
-        var known = Assert.IsType<OkObjectResult>(
+        Assert.IsType<NotFoundResult>(
             controller.Get("WH-IST-01", "CUSTOMER-ANK-01", "STANDARD", default).Result);
-        Assert.Equal(720, Assert.IsType<MockErpShippingDuration>(known.Value).ShippingDurationMinutes);
         Assert.IsType<NotFoundResult>(
             controller.Get("UNKNOWN", "UNKNOWN", "UNKNOWN", default).Result);
     }
