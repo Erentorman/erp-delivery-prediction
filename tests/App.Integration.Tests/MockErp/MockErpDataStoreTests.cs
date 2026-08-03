@@ -13,17 +13,25 @@ public sealed class MockErpDataStoreTests
         "mock-erp-seed.json");
 
     [Fact]
-    public void SeedLoadsExpectedDeterministicData()
+    public void FullRuntimeSeedLoadsExpectedCoreData()
     {
         var store = new MockErpDataStore(SeedPath);
 
-        Assert.Equal(2, store.GetOrders().Count);
-        Assert.Equal("PROD-BIKE-01", store.GetOrder("ORD-1001")?.ProductId);
-        Assert.Equal("Mock Commuter Bicycle", store.GetProduct("PROD-BIKE-01")?.Name);
-        Assert.Collection(
-            store.GetProductBom("PROD-BIKE-01"),
-            line => Assert.Equal("COMP-FRAME-01", line.ComponentId),
-            line => Assert.Equal("COMP-WHEEL-01", line.ComponentId));
+        Assert.Equal(1000, store.GetOrders().Count);
+
+        var order = Assert.IsType<MockErpOrder>(store.GetOrder("SO00001"));
+        Assert.Equal("P002", order.ProductId);
+        Assert.Equal(16, order.Quantity);
+        Assert.Equal(new DateOnly(2026, 7, 2), order.RequestedDeliveryDate);
+
+        var product = Assert.IsType<MockErpProduct>(store.GetProduct("P002"));
+        Assert.Equal("Sandalye", product.Name);
+        Assert.Equal("Adet", product.Unit);
+
+        var bom = store.GetProductBom("P002");
+        Assert.Equal(11, bom.Count);
+        Assert.Equal("MAT-AHSAP-OTURAK", bom[0].ComponentId);
+        Assert.Contains(bom, line => line.ComponentId == "MAT-AHSAP-OTURAK");
     }
 
     [Fact]
@@ -32,7 +40,7 @@ public sealed class MockErpDataStoreTests
         var store = new MockErpDataStore(SeedPath);
 
         Assert.Equal(store.GetOrders(), store.GetOrders());
-        Assert.Equal(store.GetProductBom("PROD-BIKE-01"), store.GetProductBom("PROD-BIKE-01"));
+        Assert.Equal(store.GetProductBom("P002"), store.GetProductBom("P002"));
         Assert.Null(store.GetOrder("ORD-UNKNOWN"));
         Assert.Null(store.GetProduct("PROD-UNKNOWN"));
         Assert.Empty(store.GetProductBom("PROD-UNKNOWN"));
@@ -50,71 +58,76 @@ public sealed class MockErpDataStoreTests
     }
 
     [Fact]
-    public void SeedContainsAllRemainingResourceCategories()
+    public void FullRuntimeSeedContainsRequiredRootsAndExpectedCollectionCounts()
     {
         using var document = JsonDocument.Parse(File.ReadAllText(SeedPath));
         var root = document.RootElement;
 
-        Assert.True(root.GetProperty("stockLevels").GetArrayLength() > 1);
-        Assert.True(root.GetProperty("openPurchaseOrders").GetArrayLength() > 1);
-        Assert.True(root.GetProperty("workOrders").GetArrayLength() > 1);
-        Assert.True(root.GetProperty("capacityCalendar").GetProperty("workCenters").GetArrayLength() > 1);
-        Assert.True(root.GetProperty("shippingDurations").GetArrayLength() > 1);
+        var requiredRoots = new[]
+        {
+            "orders", "products", "boms", "stockLevels",
+            "openPurchaseOrders", "workOrders", "shippingDurations", "capacityCalendar"
+        };
+        Assert.All(requiredRoots, property => Assert.True(root.TryGetProperty(property, out _), property));
+
+        Assert.Equal(1000, root.GetProperty("orders").GetArrayLength());
+        Assert.Equal(4, root.GetProperty("products").GetArrayLength());
+        Assert.Equal(4, root.GetProperty("boms").GetArrayLength());
+        Assert.Equal(
+            51,
+            root.GetProperty("boms").EnumerateArray()
+                .Sum(bom => bom.GetProperty("lines").GetArrayLength()));
+        Assert.Equal(4, root.GetProperty("stockLevels").GetArrayLength());
+        Assert.Empty(root.GetProperty("openPurchaseOrders").EnumerateArray());
+        Assert.Empty(root.GetProperty("workOrders").EnumerateArray());
+        Assert.Empty(root.GetProperty("shippingDurations").EnumerateArray());
+
+        var capacity = root.GetProperty("capacityCalendar");
+        Assert.Empty(capacity.GetProperty("workCenters").EnumerateArray());
+        Assert.Empty(capacity.GetProperty("shifts").EnumerateArray());
+        Assert.Empty(capacity.GetProperty("holidays").EnumerateArray());
+        Assert.Empty(capacity.GetProperty("plannedDowntimes").EnumerateArray());
     }
 
     [Fact]
-    public void StockLevelsFilterAndPreserveExactDecimals()
+    public void FullRuntimeSeedStockForP002HasExpectedQuantitiesAndNullLocation()
     {
         var store = new MockErpDataStore(SeedPath);
 
-        var result = store.GetStockLevels(["PROD-BIKE-01"]);
+        var result = store.GetStockLevels(["P002"]);
 
         var stock = Assert.Single(result);
-        Assert.Equal(20.50m, stock.OnHandQuantity);
-        Assert.Equal(8.25m, stock.ReservedQuantity);
-        Assert.Equal(12.25m, stock.AvailableQuantity);
+        Assert.Equal(500m, stock.OnHandQuantity);
+        Assert.Equal(0m, stock.ReservedQuantity);
+        Assert.Equal(500m, stock.AvailableQuantity);
+        Assert.Null(stock.LocationReference);
         Assert.Empty(store.GetStockLevels(["UNKNOWN"]));
     }
 
     [Fact]
-    public void OpenPurchaseOrdersFilterAndPreserveDateOffset()
+    public void IntentionallyEmptyOpenPurchaseOrdersReturnNonNullEmptyCollection()
     {
         var store = new MockErpDataStore(SeedPath);
 
-        var purchaseOrder = Assert.Single(store.GetOpenPurchaseOrders(["PROD-DESK-01"]));
+        var result = store.GetOpenPurchaseOrders(["P002"]);
 
-        Assert.Equal("PO-2002", purchaseOrder.PurchaseOrderReference);
-        Assert.Equal(6.25m, purchaseOrder.OpenQuantity);
-        Assert.Equal(TimeSpan.FromHours(3), purchaseOrder.ExpectedAvailabilityDateTime.Offset);
-        Assert.Equal(5760, purchaseOrder.SupplierLeadTimeMinutes);
+        Assert.NotNull(result);
+        Assert.Empty(result);
     }
 
     [Fact]
-    public void WorkOrdersFilterAndPreserveNestedOperations()
+    public void IntentionallyEmptyWorkOrdersReturnNonNullEmptyCollection()
     {
         var store = new MockErpDataStore(SeedPath);
 
-        var workOrder = Assert.Single(
-            store.GetWorkOrders("ORD-1001", ["PROD-BIKE-01", "PROD-DESK-01"]));
+        var result = store.GetWorkOrders("SO00001", ["P002"]);
 
-        Assert.Equal("WO-3001", workOrder.WorkOrderReference);
-        Assert.Collection(
-            workOrder.Operations,
-            operation =>
-            {
-                Assert.Equal(180, operation.StandardDurationMinutes);
-                Assert.Empty(operation.PredecessorOperationReferences);
-            },
-            operation =>
-            {
-                Assert.Equal(45, operation.RemainingDurationMinutes);
-                Assert.Equal(["WO-3001-OP10"], operation.PredecessorOperationReferences);
-            });
-        Assert.Empty(store.GetWorkOrders("ORD-1001", ["PROD-DESK-01"]));
+        Assert.NotNull(result);
+        Assert.Empty(result);
     }
 
     [Fact]
-    public void CapacityCalendarFiltersReferencesAndRangeWhilePreservingOffsets()
+    public void IntentionallyEmptyCapacityCalendarPreservesRangeAndReturnsNonNullEmptyChildren()
     {
         var store = new MockErpDataStore(SeedPath);
         var rangeStart = DateTimeOffset.Parse("2026-08-04T00:00:00+03:00");
@@ -127,17 +140,18 @@ public sealed class MockErpDataStoreTests
 
         Assert.Equal(rangeStart, result.RangeStart);
         Assert.Equal(rangeEnd, result.RangeEnd);
-        Assert.Single(result.WorkCenters);
-        Assert.Equal(960, result.WorkCenters[0].CapacityMinutes);
-        Assert.Single(result.Shifts);
-        Assert.Equal(TimeSpan.FromHours(3), result.Shifts[0].Start.Offset);
-        Assert.Single(result.Holidays);
-        Assert.Single(result.PlannedDowntimes);
-        Assert.Equal(60, result.PlannedDowntimes[0].PlannedDowntimeMinutes);
+        Assert.NotNull(result.WorkCenters);
+        Assert.Empty(result.WorkCenters);
+        Assert.NotNull(result.Shifts);
+        Assert.Empty(result.Shifts);
+        Assert.NotNull(result.Holidays);
+        Assert.Empty(result.Holidays);
+        Assert.NotNull(result.PlannedDowntimes);
+        Assert.Empty(result.PlannedDowntimes);
     }
 
     [Fact]
-    public void ShippingDurationReturnsMatchAndNullForUnknownRoute()
+    public void IntentionallyEmptyShippingDurationsReturnNull()
     {
         var store = new MockErpDataStore(SeedPath);
 
@@ -146,9 +160,7 @@ public sealed class MockErpDataStoreTests
             "CUSTOMER-ANK-01",
             "STANDARD");
 
-        Assert.NotNull(duration);
-        Assert.Equal("ROUTE-IST-ANK", duration.RoutingReference);
-        Assert.Equal(720, duration.ShippingDurationMinutes);
+        Assert.Null(duration);
         Assert.Null(store.GetShippingDuration("UNKNOWN", "UNKNOWN", "UNKNOWN"));
     }
 
@@ -156,17 +168,16 @@ public sealed class MockErpDataStoreTests
     public void RepeatedReadsAreDeterministicAndReturnedCollectionsAreReadOnly()
     {
         var store = new MockErpDataStore(SeedPath);
-        var first = store.GetStockLevels(["PROD-BIKE-01"]);
-        var second = store.GetStockLevels(["PROD-BIKE-01"]);
-        var workOrder = Assert.Single(store.GetWorkOrders("ORD-1001", ["PROD-BIKE-01"]));
+        var first = store.GetStockLevels(["P002"]);
+        var second = store.GetStockLevels(["P002"]);
+        var bom = store.GetProductBom("P002");
 
         Assert.Equal(first, second);
         Assert.Throws<NotSupportedException>(
             () => ((IList)first).Add(new MockErpStockLevel("X", null, 0, 0, 0)));
         Assert.Throws<NotSupportedException>(
-            () => ((IList)workOrder.Operations).Clear());
-        Assert.Throws<NotSupportedException>(
-            () => ((IList)workOrder.Operations[1].PredecessorOperationReferences).Clear());
-        Assert.Single(store.GetStockLevels(["PROD-BIKE-01"]));
+            () => ((IList)bom).Clear());
+        Assert.Single(store.GetStockLevels(["P002"]));
+        Assert.Equal(11, store.GetProductBom("P002").Count);
     }
 }
