@@ -1,0 +1,44 @@
+{
+  "schemaVersion": "1.0.0",
+  "isValid": true,
+  "totalChecks": 145,
+  "passedChecks": 128,
+  "failedChecks": 0,
+  "errors": [],
+  "warnings": [],
+  "recordCounts": {
+    "orders": 5,
+    "products": 4,
+    "boms": 4,
+    "stockLevels": 4,
+    "groundTruth": 5,
+    "uniqueMaterials": 34
+  },
+  "duplicateIds": {
+    "products": [],
+    "orders": [],
+    "boms": []
+  },
+  "brokenReferences": {
+    "orders": [],
+    "boms": [],
+    "bomLines": [],
+    "stockLevels": []
+  },
+  "slugCollisions": [],
+  "fallbackUsage": {
+    "defaultProductUnitUsage": 4,
+    "capacityFallbackUsage": 0,
+    "shippingFallbackUsage": 0,
+    "supplierLeadTimeFallbackUsage": 0,
+    "reservedQuantityAssumedZero": 4,
+    "availableQuantityAssumedOnHand": 4
+  },
+  "consciouslyEmptySections": {
+    "openPurchaseOrders": true,
+    "workOrders": true,
+    "capacityCalendar.workCenters": true,
+    "shippingDurations": true
+  },
+  "sourceInputSummary": {}
+}

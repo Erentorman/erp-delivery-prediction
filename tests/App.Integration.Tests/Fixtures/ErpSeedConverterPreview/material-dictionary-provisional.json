@@ -1,0 +1,138 @@
+[
+  {
+    "name": "Ahşap Ayak",
+    "componentId": "MAT-AHSAP-AYAK"
+  },
+  {
+    "name": "Ahşap Kasa Profili",
+    "componentId": "MAT-AHSAP-KASA-PROFILI"
+  },
+  {
+    "name": "Ahşap Oturak",
+    "componentId": "MAT-AHSAP-OTURAK"
+  },
+  {
+    "name": "Ahşap Sırtlık",
+    "componentId": "MAT-AHSAP-SIRTLIK"
+  },
+  {
+    "name": "Ahşap Tutkalı",
+    "componentId": "MAT-AHSAP-TUTKALI"
+  },
+  {
+    "name": "Ahşap İç İskelet",
+    "componentId": "MAT-AHSAP-IC-ISKELET"
+  },
+  {
+    "name": "Boya",
+    "componentId": "MAT-BOYA"
+  },
+  {
+    "name": "Civata",
+    "componentId": "MAT-CIVATA"
+  },
+  {
+    "name": "Dolgu Malzemesi",
+    "componentId": "MAT-DOLGU-MALZEMESI"
+  },
+  {
+    "name": "Kapak",
+    "componentId": "MAT-KAPAK"
+  },
+  {
+    "name": "Kapı Kolu",
+    "componentId": "MAT-KAPI-KOLU"
+  },
+  {
+    "name": "Karton Koli",
+    "componentId": "MAT-KARTON-KOLI"
+  },
+  {
+    "name": "Kilit Mekanizması",
+    "componentId": "MAT-KILIT-MEKANIZMASI"
+  },
+  {
+    "name": "Koruyucu Köpük",
+    "componentId": "MAT-KORUYUCU-KOPUK"
+  },
+  {
+    "name": "Koruyucu Sünger",
+    "componentId": "MAT-KORUYUCU-SUNGER"
+  },
+  {
+    "name": "Kulp",
+    "componentId": "MAT-KULP"
+  },
+  {
+    "name": "MDF Alt Panel",
+    "componentId": "MAT-MDF-ALT-PANEL"
+  },
+  {
+    "name": "MDF Arka Panel",
+    "componentId": "MAT-MDF-ARKA-PANEL"
+  },
+  {
+    "name": "MDF Kapı Paneli",
+    "componentId": "MAT-MDF-KAPI-PANELI"
+  },
+  {
+    "name": "MDF Raf",
+    "componentId": "MAT-MDF-RAF"
+  },
+  {
+    "name": "MDF Tabla",
+    "componentId": "MAT-MDF-TABLA"
+  },
+  {
+    "name": "MDF Yan Panel",
+    "componentId": "MAT-MDF-YAN-PANEL"
+  },
+  {
+    "name": "MDF Üst Panel",
+    "componentId": "MAT-MDF-UST-PANEL"
+  },
+  {
+    "name": "Menteşe",
+    "componentId": "MAT-MENTESE"
+  },
+  {
+    "name": "Metal Bağlantı Aparatı",
+    "componentId": "MAT-METAL-BAGLANTI-APARATI"
+  },
+  {
+    "name": "Metal Destek",
+    "componentId": "MAT-METAL-DESTEK"
+  },
+  {
+    "name": "Minifix Bağlantı",
+    "componentId": "MAT-MINIFIX-BAGLANTI"
+  },
+  {
+    "name": "Naylon Koruyucu",
+    "componentId": "MAT-NAYLON-KORUYUCU"
+  },
+  {
+    "name": "PVC Kenar Bandı",
+    "componentId": "MAT-PVC-KENAR-BANDI"
+  },
+  {
+    "name": "Pul",
+    "componentId": "MAT-PUL"
+  },
+  {
+    "name": "Strafor Koruyucu",
+    "componentId": "MAT-STRAFOR-KORUYUCU"
+  },
+  {
+    "name": "Vernik",
+    "componentId": "MAT-VERNIK"
+  },
+  {
+    "name": "Vida",
+    "componentId": "MAT-VIDA"
+  },
+  {
+    "name": "Ürün Etiketi",
+    "componentId": "MAT-URUN-ETIKETI"
+  }
+]
