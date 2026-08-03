@@ -26,9 +26,4 @@
     <ProjectReference Include="..\..\src\MockErp.Api\MockErp.Api.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <None Update="Fixtures\ErpSeedConverterPreview\*.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-  </ItemGroup>
 </Project>
