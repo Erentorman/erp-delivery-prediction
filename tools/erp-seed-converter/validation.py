@@ -128,25 +128,66 @@ def run_validation(seed: dict, ground_truth: list, material_dict: dict, out_dir:
             report["passedChecks"] += 1
 
     # 4.5. Mandatory record fields non-null
+
+    def check_required(condition, message):
+        report["totalChecks"] += 1
+        if condition:
+            report["passedChecks"] += 1
+        else:
+            add_error(message)
+
     for p in seed.get("products", []):
-        report["totalChecks"] += 1
-        if not p.get("id"): add_error("Product id is null")
-        if not p.get("name"): add_error(f"Product name is null for id {p.get('id')}")
+        check_required(
+            bool(p.get("id")),
+            "Product id is null",
+        )
+        check_required(
+            bool(p.get("name")),
+            f"Product name is null for id {p.get('id')}",
+        )
+
     for o in seed.get("orders", []):
-        report["totalChecks"] += 1
-        if not o.get("id"): add_error("Order id is null")
-        if not o.get("productId"): add_error(f"Order productId is null for id {o.get('id')}")
-        if o.get("quantity") is None: add_error(f"Order quantity is null for id {o.get('id')}")
+        check_required(
+            bool(o.get("id")),
+            "Order id is null",
+        )
+        check_required(
+            bool(o.get("productId")),
+            f"Order productId is null for id {o.get('id')}",
+        )
+        check_required(
+            o.get("quantity") is not None,
+            f"Order quantity is null for id {o.get('id')}",
+        )
+
     for b in seed.get("boms", []):
-        report["totalChecks"] += 1
-        if not b.get("productId"): add_error("BOM productId is null")
-        for l in b.get("lines", []):
-            if not l.get("componentId"): add_error(f"BOM line componentId is null for BOM {b.get('productId')}")
-            if l.get("quantity") is None: add_error(f"BOM line quantity is null for BOM {b.get('productId')}")
-    for s in seed.get("stockLevels", []):
-        report["totalChecks"] += 1
-        if not s.get("productReference"): add_error("StockLevel productReference is null")
-        if s.get("onHandQuantity") is None: add_error(f"StockLevel onHandQuantity is null for {s.get('productReference')}")
+        check_required(
+            bool(b.get("productId")),
+            "BOM productId is null",
+        )
+
+        for line in b.get("lines", []):
+            check_required(
+                bool(line.get("componentId")),
+                f"BOM line componentId is null for BOM {b.get('productId')}",
+            )
+            check_required(
+                line.get("quantity") is not None,
+                f"BOM line quantity is null for BOM {b.get('productId')}",
+            )
+
+    for stock_level in seed.get("stockLevels", []):
+        check_required(
+            bool(stock_level.get("productReference")),
+            "StockLevel productReference is null",
+        )
+        check_required(
+            stock_level.get("onHandQuantity") is not None,
+            (
+                "StockLevel onHandQuantity is null for "
+                f"{stock_level.get('productReference')}"
+            ),
+        )
 
     # 5. Leakage fields check
     leakage_fields = {"productionStartDate", "productionFinishDate", "estimatedDeliveryDate", "totalDeliveryDurationMinutes"}

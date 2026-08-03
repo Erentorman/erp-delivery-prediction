@@ -91,3 +91,13 @@ def test_36_reserved_qty_zero_usage(empty_seed_validation_report):
 
 def test_37_available_qty_onhand_usage(empty_seed_validation_report):
     assert empty_seed_validation_report["fallbackUsage"]["availableQuantityAssumedOnHand"] == 2
+
+
+def test_38_validation_check_counts_are_consistent(
+    empty_seed_validation_report,
+):
+    report = empty_seed_validation_report
+
+    assert report["totalChecks"] == (
+        report["passedChecks"] + report["failedChecks"]
+    )
