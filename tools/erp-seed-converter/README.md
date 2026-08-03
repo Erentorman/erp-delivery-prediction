@@ -34,13 +34,13 @@ tools/erp-seed-converter/
 ## Kurulum ve Kullanım
 
 **Gereksinimler:**
-- Python 3.10+ (Minimum sürüm)
+- Python 3.11 (standart sürüm — bkz. `.python-version`; `convert.py`'deki `int | None` sözdizimi Python 3.10+ gerektirir, repo/CI 3.11'e sabitlenmiştir)
 - Orijinal ERP Excel dosyası (**ÖNEMLİ:** Güvenlik ve veri gizliliği kuralları gereği, orijinal Excel dosyası kesinlikle bu repository'ye eklenmemeli, repository dizini dışında veya `.gitignore` kapsamındaki bir klasörde tutulmalıdır.)
 
 **Kurulum (Sanal Ortam):**
 ```bash
 cd tools/erp-seed-converter
-python3 -m venv .venv
+python3.11 -m venv .venv
 source .venv/bin/activate  # Mac/Linux
 # Windows için: .venv\Scripts\activate
 
