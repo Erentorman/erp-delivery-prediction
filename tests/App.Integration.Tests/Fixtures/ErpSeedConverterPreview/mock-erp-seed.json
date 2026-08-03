@@ -1,0 +1,423 @@
+{
+  "orders": [
+    {
+      "id": "SO00001",
+      "productId": "P002",
+      "quantity": 16,
+      "requestedDeliveryDate": "2026-07-02"
+    },
+    {
+      "id": "SO00002",
+      "productId": "P002",
+      "quantity": 4,
+      "requestedDeliveryDate": "2026-07-10"
+    },
+    {
+      "id": "SO00003",
+      "productId": "P004",
+      "quantity": 50,
+      "requestedDeliveryDate": "2026-04-21"
+    },
+    {
+      "id": "SO00004",
+      "productId": "P001",
+      "quantity": 21,
+      "requestedDeliveryDate": "2026-04-23"
+    },
+    {
+      "id": "SO00005",
+      "productId": "P002",
+      "quantity": 11,
+      "requestedDeliveryDate": "2026-06-07"
+    }
+  ],
+  "products": [
+    {
+      "id": "P001",
+      "name": "Masa",
+      "unit": "Adet"
+    },
+    {
+      "id": "P002",
+      "name": "Sandalye",
+      "unit": "Adet"
+    },
+    {
+      "id": "P003",
+      "name": "Dolap",
+      "unit": "Adet"
+    },
+    {
+      "id": "P004",
+      "name": "Kapı",
+      "unit": "Adet"
+    }
+  ],
+  "boms": [
+    {
+      "productId": "P001",
+      "lines": [
+        {
+          "componentId": "MAT-MDF-TABLA",
+          "description": "MDF Tabla",
+          "quantity": 1.0,
+          "unit": "Adet"
+        },
+        {
+          "componentId": "MAT-AHSAP-AYAK",
+          "description": "Ahşap Ayak",
+          "quantity": 4.0,
+          "unit": "Adet"
+        },
+        {
+          "componentId": "MAT-METAL-BAGLANTI-APARATI",
+          "description": "Metal Bağlantı Aparatı",
+          "quantity": 4.0,
+          "unit": "Adet"
+        },
+        {
+          "componentId": "MAT-VIDA",
+          "description": "Vida",
+          "quantity": 16.0,
+          "unit": "Adet"
+        },
+        {
+          "componentId": "MAT-CIVATA",
+          "description": "Civata",
+          "quantity": 8.0,
+          "unit": "Adet"
+        },
+        {
+          "componentId": "MAT-PUL",
+          "description": "Pul",
+          "quantity": 8.0,
+          "unit": "Adet"
+        },
+        {
+          "componentId": "MAT-AHSAP-TUTKALI",
+          "description": "Ahşap Tutkalı",
+          "quantity": 0.15,
+          "unit": "kg"
+        },
+        {
+          "componentId": "MAT-VERNIK",
+          "description": "Vernik",
+          "quantity": 0.4,
+          "unit": "Litre"
+        },
+        {
+          "componentId": "MAT-KARTON-KOLI",
+          "description": "Karton Koli",
+          "quantity": 1.0,
+          "unit": "Adet"
+        },
+        {
+          "componentId": "MAT-KORUYUCU-KOPUK",
+          "description": "Koruyucu Köpük",
+          "quantity": 4.0,
+          "unit": "Adet"
+        },
+        {
+          "componentId": "MAT-URUN-ETIKETI",
+          "description": "Ürün Etiketi",
+          "quantity": 1.0,
+          "unit": "Adet"
+        }
+      ]
+    },
+    {
+      "productId": "P002",
+      "lines": [
+        {
+          "componentId": "MAT-AHSAP-OTURAK",
+          "description": "Ahşap Oturak",
+          "quantity": 1.0,
+          "unit": "Adet"
+        },
+        {
+          "componentId": "MAT-AHSAP-AYAK",
+          "description": "Ahşap Ayak",
+          "quantity": 4.0,
+          "unit": "Adet"
+        },
+        {
+          "componentId": "MAT-AHSAP-SIRTLIK",
+          "description": "Ahşap Sırtlık",
+          "quantity": 1.0,
+          "unit": "Adet"
+        },
+        {
+          "componentId": "MAT-METAL-DESTEK",
+          "description": "Metal Destek",
+          "quantity": 2.0,
+          "unit": "Adet"
+        },
+        {
+          "componentId": "MAT-VIDA",
+          "description": "Vida",
+          "quantity": 12.0,
+          "unit": "Adet"
+        },
+        {
+          "componentId": "MAT-CIVATA",
+          "description": "Civata",
+          "quantity": 4.0,
+          "unit": "Adet"
+        },
+        {
+          "componentId": "MAT-AHSAP-TUTKALI",
+          "description": "Ahşap Tutkalı",
+          "quantity": 0.1,
+          "unit": "kg"
+        },
+        {
+          "componentId": "MAT-VERNIK",
+          "description": "Vernik",
+          "quantity": 0.25,
+          "unit": "Litre"
+        },
+        {
+          "componentId": "MAT-KARTON-KOLI",
+          "description": "Karton Koli",
+          "quantity": 1.0,
+          "unit": "Adet"
+        },
+        {
+          "componentId": "MAT-NAYLON-KORUYUCU",
+          "description": "Naylon Koruyucu",
+          "quantity": 1.0,
+          "unit": "Adet"
+        },
+        {
+          "componentId": "MAT-URUN-ETIKETI",
+          "description": "Ürün Etiketi",
+          "quantity": 1.0,
+          "unit": "Adet"
+        }
+      ]
+    },
+    {
+      "productId": "P003",
+      "lines": [
+        {
+          "componentId": "MAT-MDF-YAN-PANEL",
+          "description": "MDF Yan Panel",
+          "quantity": 2.0,
+          "unit": "Adet"
+        },
+        {
+          "componentId": "MAT-MDF-UST-PANEL",
+          "description": "MDF Üst Panel",
+          "quantity": 1.0,
+          "unit": "Adet"
+        },
+        {
+          "componentId": "MAT-MDF-ALT-PANEL",
+          "description": "MDF Alt Panel",
+          "quantity": 1.0,
+          "unit": "Adet"
+        },
+        {
+          "componentId": "MAT-MDF-RAF",
+          "description": "MDF Raf",
+          "quantity": 4.0,
+          "unit": "Adet"
+        },
+        {
+          "componentId": "MAT-MDF-ARKA-PANEL",
+          "description": "MDF Arka Panel",
+          "quantity": 1.0,
+          "unit": "Adet"
+        },
+        {
+          "componentId": "MAT-KAPAK",
+          "description": "Kapak",
+          "quantity": 2.0,
+          "unit": "Adet"
+        },
+        {
+          "componentId": "MAT-MENTESE",
+          "description": "Menteşe",
+          "quantity": 6.0,
+          "unit": "Adet"
+        },
+        {
+          "componentId": "MAT-KULP",
+          "description": "Kulp",
+          "quantity": 2.0,
+          "unit": "Adet"
+        },
+        {
+          "componentId": "MAT-VIDA",
+          "description": "Vida",
+          "quantity": 40.0,
+          "unit": "Adet"
+        },
+        {
+          "componentId": "MAT-MINIFIX-BAGLANTI",
+          "description": "Minifix Bağlantı",
+          "quantity": 24.0,
+          "unit": "Adet"
+        },
+        {
+          "componentId": "MAT-AHSAP-TUTKALI",
+          "description": "Ahşap Tutkalı",
+          "quantity": 0.3,
+          "unit": "kg"
+        },
+        {
+          "componentId": "MAT-PVC-KENAR-BANDI",
+          "description": "PVC Kenar Bandı",
+          "quantity": 12.0,
+          "unit": "Metre"
+        },
+        {
+          "componentId": "MAT-VERNIK",
+          "description": "Vernik",
+          "quantity": 0.7,
+          "unit": "Litre"
+        },
+        {
+          "componentId": "MAT-KARTON-KOLI",
+          "description": "Karton Koli",
+          "quantity": 2.0,
+          "unit": "Adet"
+        },
+        {
+          "componentId": "MAT-STRAFOR-KORUYUCU",
+          "description": "Strafor Koruyucu",
+          "quantity": 8.0,
+          "unit": "Adet"
+        },
+        {
+          "componentId": "MAT-URUN-ETIKETI",
+          "description": "Ürün Etiketi",
+          "quantity": 1.0,
+          "unit": "Adet"
+        }
+      ]
+    },
+    {
+      "productId": "P004",
+      "lines": [
+        {
+          "componentId": "MAT-MDF-KAPI-PANELI",
+          "description": "MDF Kapı Paneli",
+          "quantity": 1.0,
+          "unit": "Adet"
+        },
+        {
+          "componentId": "MAT-AHSAP-KASA-PROFILI",
+          "description": "Ahşap Kasa Profili",
+          "quantity": 2.0,
+          "unit": "Adet"
+        },
+        {
+          "componentId": "MAT-AHSAP-IC-ISKELET",
+          "description": "Ahşap İç İskelet",
+          "quantity": 1.0,
+          "unit": "Adet"
+        },
+        {
+          "componentId": "MAT-DOLGU-MALZEMESI",
+          "description": "Dolgu Malzemesi",
+          "quantity": 1.0,
+          "unit": "Adet"
+        },
+        {
+          "componentId": "MAT-MENTESE",
+          "description": "Menteşe",
+          "quantity": 3.0,
+          "unit": "Adet"
+        },
+        {
+          "componentId": "MAT-KAPI-KOLU",
+          "description": "Kapı Kolu",
+          "quantity": 1.0,
+          "unit": "Adet"
+        },
+        {
+          "componentId": "MAT-KILIT-MEKANIZMASI",
+          "description": "Kilit Mekanizması",
+          "quantity": 1.0,
+          "unit": "Adet"
+        },
+        {
+          "componentId": "MAT-VIDA",
+          "description": "Vida",
+          "quantity": 20.0,
+          "unit": "Adet"
+        },
+        {
+          "componentId": "MAT-AHSAP-TUTKALI",
+          "description": "Ahşap Tutkalı",
+          "quantity": 0.2,
+          "unit": "kg"
+        },
+        {
+          "componentId": "MAT-BOYA",
+          "description": "Boya",
+          "quantity": 0.6,
+          "unit": "Litre"
+        },
+        {
+          "componentId": "MAT-KARTON-KOLI",
+          "description": "Karton Koli",
+          "quantity": 1.0,
+          "unit": "Adet"
+        },
+        {
+          "componentId": "MAT-KORUYUCU-SUNGER",
+          "description": "Koruyucu Sünger",
+          "quantity": 4.0,
+          "unit": "Adet"
+        },
+        {
+          "componentId": "MAT-URUN-ETIKETI",
+          "description": "Ürün Etiketi",
+          "quantity": 1.0,
+          "unit": "Adet"
+        }
+      ]
+    }
+  ],
+  "stockLevels": [
+    {
+      "productReference": "P003",
+      "locationReference": null,
+      "onHandQuantity": 248,
+      "reservedQuantity": 0,
+      "availableQuantity": 248
+    },
+    {
+      "productReference": "P004",
+      "locationReference": null,
+      "onHandQuantity": 399,
+      "reservedQuantity": 0,
+      "availableQuantity": 399
+    },
+    {
+      "productReference": "P001",
+      "locationReference": null,
+      "onHandQuantity": 309,
+      "reservedQuantity": 0,
+      "availableQuantity": 309
+    },
+    {
+      "productReference": "P002",
+      "locationReference": null,
+      "onHandQuantity": 500,
+      "reservedQuantity": 0,
+      "availableQuantity": 500
+    }
+  ],
+  "openPurchaseOrders": [],
+  "workOrders": [],
+  "capacityCalendar": {
+    "workCenters": [],
+    "shifts": [],
+    "holidays": [],
+    "plannedDowntimes": []
+  },
+  "shippingDurations": []
+}
