@@ -37,7 +37,8 @@ public sealed record MockErpWorkOrder(
     string? OrderReference,
     string ProductReference,
     string Status,
-    IReadOnlyList<MockErpWorkOrderOperation> Operations);
+    IReadOnlyList<MockErpWorkOrderOperation> Operations,
+    string? RoutingReference);
 
 public sealed record MockErpWorkOrderOperation(
     string OperationReference,

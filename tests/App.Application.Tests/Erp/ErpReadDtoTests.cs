@@ -21,7 +21,8 @@ public sealed class ErpReadDtoTests
             "SO-100",
             "PRODUCT-1",
             "Released",
-            new[] { operation });
+            new[] { operation },
+            "ROUTE-PRODUCT-1-STD");
         var order = new OrderReadDto("SO-100", requestedDelivery, "High", "Planned");
         var item = new OrderItemReadDto("SO-100", "10", "PRODUCT-1", 12.5m, "EA");
         var shipping = new ShippingDurationReadDto(
