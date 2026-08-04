@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Text.Json;
 using MockErp.Api.Models;
+using MockErp.Api.Validation;
 
 namespace MockErp.Api.Data;
 
@@ -64,7 +65,7 @@ public sealed class MockErpDataStore
         EnsureUnique(
             seed.CapacityCalendar.WorkCenters.Select(workCenter => workCenter.WorkCenterRef),
             "work center");
-        EnsureValidWorkOrderOperations(seed.WorkOrders, seed.CapacityCalendar.WorkCenters);
+        EnsureValidWorkOrderRoutings(seed.WorkOrders, seed.CapacityCalendar.WorkCenters);
 
         var orders = seed.Orders
             .Select(order => new MockErpOrder(
@@ -96,13 +97,16 @@ public sealed class MockErpDataStore
         _workOrders = Array.AsReadOnly(seed.WorkOrders
             .Select(workOrder => workOrder with
             {
-                Operations = Array.AsReadOnly(workOrder.Operations
-                    .Select(operation => operation with
-                    {
-                        PredecessorOperationReferences =
-                            Array.AsReadOnly(operation.PredecessorOperationReferences.ToArray())
-                    })
-                    .ToArray())
+                Routing = workOrder.Routing with
+                {
+                    Operations = Array.AsReadOnly(workOrder.Routing.Operations
+                        .Select(operation => operation with
+                        {
+                            PredecessorOperationReferences =
+                                Array.AsReadOnly(operation.PredecessorOperationReferences.ToArray())
+                        })
+                        .ToArray())
+                }
             })
             .ToArray());
         _workCenters = ReadOnly(seed.CapacityCalendar.WorkCenters);
@@ -211,10 +215,7 @@ public sealed class MockErpDataStore
         }
     }
 
-    // Each work order's Operations list is the routing-scope boundary (T-359): operation
-    // reference/sequence uniqueness and predecessor references are validated per work
-    // order, not globally, since a routing is represented as one work order's operations.
-    private static void EnsureValidWorkOrderOperations(
+    private static void EnsureValidWorkOrderRoutings(
         IEnumerable<MockErpWorkOrder> workOrders,
         IEnumerable<MockErpWorkCenter> workCenters)
     {
@@ -224,61 +225,16 @@ public sealed class MockErpDataStore
 
         foreach (var workOrder in workOrders)
         {
-            var operations = workOrder.Operations;
+            RoutingValidator.Validate(workOrder.Routing);
 
-            EnsureUnique(
-                operations.Select(operation => operation.OperationReference),
-                $"operation reference in work order '{workOrder.WorkOrderReference}'");
-            EnsureUnique(
-                operations.Select(operation => operation.OperationSequence.ToString()),
-                $"operation sequence in work order '{workOrder.WorkOrderReference}'");
-
-            var knownOperationReferences = new HashSet<string>(
-                operations.Select(operation => operation.OperationReference),
-                StringComparer.Ordinal);
-
-            foreach (var operation in operations)
+            foreach (var operation in workOrder.Routing.Operations)
             {
-                if (operation.StandardDurationMinutes <= 0)
-                {
-                    throw new InvalidOperationException(
-                        $"Work order '{workOrder.WorkOrderReference}' operation " +
-                        $"'{operation.OperationReference}' has an invalid StandardDurationMinutes " +
-                        $"({operation.StandardDurationMinutes}); it must be positive.");
-                }
-
-                if (operation.OperationSequence <= 0)
-                {
-                    throw new InvalidOperationException(
-                        $"Work order '{workOrder.WorkOrderReference}' operation " +
-                        $"'{operation.OperationReference}' has an invalid OperationSequence " +
-                        $"({operation.OperationSequence}); it must be positive.");
-                }
-
                 if (!knownWorkCenters.Contains(operation.WorkCenterReference))
                 {
                     throw new InvalidOperationException(
                         $"Work order '{workOrder.WorkOrderReference}' operation " +
                         $"'{operation.OperationReference}' references unknown work center " +
                         $"'{operation.WorkCenterReference}'.");
-                }
-
-                foreach (var predecessor in operation.PredecessorOperationReferences)
-                {
-                    if (string.Equals(predecessor, operation.OperationReference, StringComparison.Ordinal))
-                    {
-                        throw new InvalidOperationException(
-                            $"Work order '{workOrder.WorkOrderReference}' operation " +
-                            $"'{operation.OperationReference}' cannot list itself as a predecessor.");
-                    }
-
-                    if (!knownOperationReferences.Contains(predecessor))
-                    {
-                        throw new InvalidOperationException(
-                            $"Work order '{workOrder.WorkOrderReference}' operation " +
-                            $"'{operation.OperationReference}' references predecessor '{predecessor}', " +
-                            "which is not part of the same work order.");
-                    }
                 }
             }
         }

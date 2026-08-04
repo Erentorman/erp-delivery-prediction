@@ -45,16 +45,17 @@ public sealed record WorkOrderReadDto(
     string? OrderReference,
     string ProductReference,
     string Status,
-    IReadOnlyList<WorkOrderOperationReadDto> Operations,
-    string? RoutingReference);
+    RoutingReadDto Routing);
 
-public sealed record WorkOrderOperationReadDto(
+public sealed record RoutingReadDto(
+    string RoutingReference,
+    IReadOnlyList<OperationReadDto> Operations);
+
+public sealed record OperationReadDto(
     string OperationReference,
     int OperationSequence,
     string WorkCenterReference,
     long StandardDurationMinutes,
-    long? RemainingDurationMinutes,
-    string Status,
     IReadOnlyList<string> PredecessorOperationReferences);
 
 public sealed record CapacityAndCalendarReadDto(
