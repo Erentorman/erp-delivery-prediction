@@ -1,11 +1,10 @@
-using App.Application.Contracts.Shipping;
-
 namespace App.Application.Abstractions.Shipping;
 
 public interface IShippingRouteLookupService
 {
     Task<ShippingRouteLookupResult> GetRouteAsync(
-        string destination,
-        string profile,
+        string originReference,
+        string destinationReference,
+        string shippingProfileReference,
         CancellationToken cancellationToken = default);
 }

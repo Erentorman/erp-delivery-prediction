@@ -7,7 +7,7 @@ public static class InfrastructureShippingServiceCollectionExtensions
 {
     public static IServiceCollection AddShippingLookup(this IServiceCollection services)
     {
-        services.AddSingleton<IShippingRouteLookupService, ShippingRouteLookupService>();
+        services.AddTransient<IShippingRouteLookupService, ShippingRouteLookupService>();
         return services;
     }
 }

@@ -209,7 +209,7 @@ public sealed class MockErpControllerTests
     [InlineData(typeof(MockErpWorkingShift), typeof(WorkingShiftReadDto))]
     [InlineData(typeof(MockErpHoliday), typeof(HolidayReadDto))]
     [InlineData(typeof(MockErpPlannedDowntime), typeof(PlannedDowntimeReadDto))]
-    [InlineData(typeof(MockErpShippingDuration), typeof(ShippingDurationReadDto))]
+    [InlineData(typeof(MockErpShippingRoute), typeof(ShippingDurationReadDto))]
     public void ResponseModelsContainApplicationReadDtoProperties(
         Type responseType,
         Type applicationDtoType)

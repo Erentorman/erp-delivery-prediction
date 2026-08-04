@@ -1,136 +1,98 @@
+using App.Application.Abstractions.Erp;
 using App.Application.Abstractions.Shipping;
-using App.Application.Contracts.Shipping;
+using App.Application.Contracts.Erp;
 using App.Infrastructure.Shipping;
-using FluentAssertions;
 
 namespace App.Infrastructure.Tests.Shipping;
 
-public class ShippingRouteLookupServiceTests
+public sealed class ShippingRouteLookupServiceTests
 {
+    [Fact]
+    public async Task ExistingRouteReturnsFoundWithExactDuration()
+    {
+        var provider = new StubErpDataProvider(
+            new ShippingDurationReadDto("WH-IST", "CUSTOMER-ANK", "STANDARD", 1_440L));
+        var service = new ShippingRouteLookupService(provider);
+
+        var result = await service.GetRouteAsync("WH-IST", "CUSTOMER-ANK", "STANDARD");
+
+        var found = Assert.IsType<ShippingRouteLookupResult.Found>(result);
+        Assert.Equal(1_440L, found.ShippingDurationMinutes);
+        Assert.Equal(("WH-IST", "CUSTOMER-ANK", "STANDARD"), provider.LastLookup);
+    }
+
+    [Fact]
+    public async Task MissingRouteReturnsNotFoundWithoutDuration()
+    {
+        var service = new ShippingRouteLookupService(new StubErpDataProvider(null));
+
+        var result = await service.GetRouteAsync("WH-IST", "UNKNOWN", "STANDARD");
+
+        Assert.IsType<ShippingRouteLookupResult.NotFound>(result);
+        Assert.Empty(typeof(ShippingRouteLookupResult.NotFound).GetProperties());
+    }
+
     [Theory]
-    [InlineData("İstanbul", 120)]
-    [InlineData("Ankara", 480)]
-    [InlineData("İzmir", 540)]
-    [InlineData("Antalya", 600)]
-    public async Task GetRouteAsync_GivenValidDestinationAndProfile_ShouldReturnRouteFound(string destination, int expectedDuration)
+    [InlineData(0)]
+    [InlineData(-1)]
+    public async Task NonPositiveProviderDurationCannotProduceFound(long duration)
     {
-        // Arrange
-        var service = new ShippingRouteLookupService();
+        var provider = new StubErpDataProvider(
+            new ShippingDurationReadDto("WH-IST", "CUSTOMER-ANK", "STANDARD", duration));
+        var service = new ShippingRouteLookupService(provider);
 
-        // Act
-        var result = await service.GetRouteAsync(destination, "DEFAULT");
-
-        // Assert
-        result.Should().BeOfType<ShippingRouteLookupResult.RouteFound>();
-        var routeFound = (ShippingRouteLookupResult.RouteFound)result;
-        routeFound.Route.Origin.Should().Be("İstanbul");
-        routeFound.Route.Destination.Should().Be(destination);
-        routeFound.Route.ShippingProfile.Should().Be("DEFAULT");
-        routeFound.Route.DurationMinutes.Should().Be(expectedDuration);
-    }
-
-    [Theory]
-    [InlineData("Bursa")]
-    [InlineData("Adana")]
-    [InlineData("Unknown")]
-    [InlineData("")]
-    public async Task GetRouteAsync_GivenInvalidDestination_ShouldReturnUnknownDestination(string destination)
-    {
-        // Arrange
-        var service = new ShippingRouteLookupService();
-
-        // Act
-        var result = await service.GetRouteAsync(destination, "DEFAULT");
-
-        // Assert
-        result.Should().BeOfType<ShippingRouteLookupResult.UnknownDestination>();
-        var unknownDest = (ShippingRouteLookupResult.UnknownDestination)result;
-        unknownDest.Destination.Should().Be(destination);
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
+            () => service.GetRouteAsync("WH-IST", "CUSTOMER-ANK", "STANDARD"));
     }
 
     [Fact]
-    public async Task GetRouteAsync_GivenValidDestinationButUnknownProfile_ShouldReturnUnknownRoute()
+    public void LookupResultHasExactlyFoundAndNotFoundOutcomes()
     {
-        // Arrange
-        var service = new ShippingRouteLookupService();
-
-        // Act
-        var result = await service.GetRouteAsync("Ankara", "UNKNOWN_PROFILE");
-
-        // Assert
-        result.Should().BeOfType<ShippingRouteLookupResult.UnknownRoute>();
-        var unknownRoute = (ShippingRouteLookupResult.UnknownRoute)result;
-        unknownRoute.Origin.Should().Be("İstanbul");
-        unknownRoute.Destination.Should().Be("Ankara");
-        unknownRoute.Profile.Should().Be("UNKNOWN_PROFILE");
+        Assert.Equal(
+            ["Found", "NotFound"],
+            typeof(ShippingRouteLookupResult).GetNestedTypes()
+                .Select(type => type.Name)
+                .Order());
     }
 
-    [Fact]
-    public void Constructor_GivenNegativeDuration_ShouldThrowInvalidOperationException()
+    private sealed class StubErpDataProvider(ShippingDurationReadDto? shippingRoute)
+        : IErpDataProvider
     {
-        // Arrange
-        var invalidRoutes = new[]
+        public (string Origin, string Destination, string Profile)? LastLookup { get; private set; }
+
+        public Task<ShippingDurationReadDto?> GetShippingDurationAsync(
+            string originReference,
+            string destinationReference,
+            string shippingProfileReference,
+            CancellationToken cancellationToken)
         {
-            new ShippingRouteReadModel("İstanbul", "Ankara", "DEFAULT", -10)
-        };
+            cancellationToken.ThrowIfCancellationRequested();
+            LastLookup = (originReference, destinationReference, shippingProfileReference);
+            return Task.FromResult(shippingRoute);
+        }
 
-        // Act
-        Action act = () => new ShippingRouteLookupService(invalidRoutes);
+        public Task<OrderReadDto?> GetOrderAsync(string orderReference, CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
 
-        // Assert
-        act.Should().Throw<InvalidOperationException>()
-           .WithMessage("*must be positive*");
-    }
+        public Task<IReadOnlyList<OrderItemReadDto>> GetOrderItemsAsync(string orderReference, CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
 
-    [Fact]
-    public void Constructor_GivenZeroDuration_ShouldThrowInvalidOperationException()
-    {
-        // Arrange
-        var invalidRoutes = new[]
-        {
-            new ShippingRouteReadModel("İstanbul", "İzmir", "DEFAULT", 0)
-        };
+        public Task<ProductReadDto?> GetProductAsync(string productReference, CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
 
-        // Act
-        Action act = () => new ShippingRouteLookupService(invalidRoutes);
+        public Task<IReadOnlyList<BomItemReadDto>> GetProductBomAsync(string productReference, CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
 
-        // Assert
-        act.Should().Throw<InvalidOperationException>()
-           .WithMessage("*must be positive*");
-    }
+        public Task<IReadOnlyList<StockLevelReadDto>> GetStockLevelsAsync(IReadOnlyList<string> productReferences, CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
 
-    [Fact]
-    public void Constructor_GivenDuplicateRoutes_ShouldThrowInvalidOperationException()
-    {
-        // Arrange
-        var duplicateRoutes = new[]
-        {
-            new ShippingRouteReadModel("İstanbul", "Ankara", "DEFAULT", 100),
-            new ShippingRouteReadModel("İstanbul", "Ankara", "DEFAULT", 200) // Duplicate with same profile!
-        };
+        public Task<IReadOnlyList<OpenPurchaseOrderReadDto>> GetOpenPurchaseOrdersAsync(IReadOnlyList<string> productReferences, CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
 
-        // Act
-        Action act = () => new ShippingRouteLookupService(duplicateRoutes);
+        public Task<IReadOnlyList<WorkOrderReadDto>> GetWorkOrdersAsync(string orderReference, IReadOnlyList<string> productReferences, CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
 
-        // Assert
-        act.Should().Throw<InvalidOperationException>()
-           .WithMessage("*Duplicate route defined*");
-    }
-
-    [Fact]
-    public void Constructor_GivenInvalidOrigin_ShouldThrowInvalidOperationException()
-    {
-        // Arrange
-        var invalidRoutes = new[]
-        {
-            new ShippingRouteReadModel("Ankara", "İzmir", "DEFAULT", 100) // Origin must be İstanbul
-        };
-
-        // Act
-        Action act = () => new ShippingRouteLookupService(invalidRoutes);
-
-        // Assert
-        act.Should().Throw<InvalidOperationException>()
-           .WithMessage("*Origin must be*");
+        public Task<CapacityAndCalendarReadDto> GetCapacityAndCalendarAsync(IReadOnlyList<string> workCenterReferences, DateTimeOffset rangeStart, DateTimeOffset rangeEnd, CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
     }
 }

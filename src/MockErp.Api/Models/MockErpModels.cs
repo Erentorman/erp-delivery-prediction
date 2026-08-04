@@ -78,9 +78,8 @@ public sealed record MockErpPlannedDowntime(
     DateTimeOffset End,
     long PlannedDowntimeMinutes);
 
-public sealed record MockErpShippingDuration(
-    string? OriginReference,
-    string? DestinationReference,
-    string? ShippingProfileReference,
-    string? RoutingReference,
+public sealed record MockErpShippingRoute(
+    string OriginReference,
+    string DestinationReference,
+    string ShippingProfileReference,
     long ShippingDurationMinutes);
