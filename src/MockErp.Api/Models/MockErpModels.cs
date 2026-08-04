@@ -60,7 +60,10 @@ public sealed record MockErpWorkCenterCapacity(
     string WorkCenterReference,
     long CapacityMinutes,
     long AvailableCapacityMinutes,
-    long CurrentLoadMinutes);
+    long CurrentLoadMinutes,
+    string Name,
+    int MachineCount,
+    string? DefaultShiftReference);
 
 public sealed record MockErpWorkingShift(
     string WorkCenterReference,

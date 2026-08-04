@@ -180,4 +180,113 @@ public sealed class MockErpDataStoreTests
         Assert.Single(store.GetStockLevels(["P002"]));
         Assert.Equal(11, store.GetProductBom("P002").Count);
     }
+
+    [Fact]
+    public void ValidWorkCenterMasterDataRoundTripsThroughTheStore()
+    {
+        var seedPath = WriteTempSeedWithWorkCenters(
+            """
+            {
+              "workCenterReference": "WC-ASSEMBLY-01",
+              "capacityMinutes": 480,
+              "availableCapacityMinutes": 360,
+              "currentLoadMinutes": 120,
+              "name": "Assembly Line 1",
+              "machineCount": 3,
+              "defaultShiftReference": "SHIFT-STD"
+            }
+            """);
+
+        var store = new MockErpDataStore(seedPath);
+        var result = store.GetCapacityAndCalendar(
+            ["WC-ASSEMBLY-01"],
+            DateTimeOffset.Parse("2026-08-01T00:00:00+03:00"),
+            DateTimeOffset.Parse("2026-08-31T23:59:59+03:00"));
+
+        var workCenter = Assert.Single(result.WorkCenters);
+        Assert.Equal("WC-ASSEMBLY-01", workCenter.WorkCenterReference);
+        Assert.Equal("Assembly Line 1", workCenter.Name);
+        Assert.Equal(3, workCenter.MachineCount);
+        Assert.Equal("SHIFT-STD", workCenter.DefaultShiftReference);
+    }
+
+    [Fact]
+    public void WorkCenterWithMachineCountBelowOneFailsFast()
+    {
+        var seedPath = WriteTempSeedWithWorkCenters(
+            """
+            {
+              "workCenterReference": "WC-ASSEMBLY-01",
+              "capacityMinutes": 480,
+              "availableCapacityMinutes": 360,
+              "currentLoadMinutes": 120,
+              "name": "Assembly Line 1",
+              "machineCount": 0,
+              "defaultShiftReference": null
+            }
+            """);
+
+        var exception = Assert.Throws<InvalidOperationException>(
+            () => new MockErpDataStore(seedPath));
+
+        Assert.Contains("MachineCount", exception.Message);
+        Assert.Contains("WC-ASSEMBLY-01", exception.Message);
+    }
+
+    [Fact]
+    public void DuplicateWorkCenterReferencesFailFast()
+    {
+        var seedPath = WriteTempSeedWithWorkCenters(
+            """
+            {
+              "workCenterReference": "WC-ASSEMBLY-01",
+              "capacityMinutes": 480,
+              "availableCapacityMinutes": 360,
+              "currentLoadMinutes": 120,
+              "name": "Assembly Line 1",
+              "machineCount": 2,
+              "defaultShiftReference": null
+            },
+            {
+              "workCenterReference": "WC-ASSEMBLY-01",
+              "capacityMinutes": 240,
+              "availableCapacityMinutes": 120,
+              "currentLoadMinutes": 60,
+              "name": "Assembly Line 1 (duplicate)",
+              "machineCount": 1,
+              "defaultShiftReference": null
+            }
+            """);
+
+        var exception = Assert.Throws<InvalidOperationException>(
+            () => new MockErpDataStore(seedPath));
+
+        Assert.Contains("duplicate work center", exception.Message);
+        Assert.Contains("WC-ASSEMBLY-01", exception.Message);
+    }
+
+    private static string WriteTempSeedWithWorkCenters(string workCentersJsonArrayContent)
+    {
+        var json = $$"""
+            {
+              "orders": [],
+              "products": [],
+              "boms": [],
+              "stockLevels": [],
+              "openPurchaseOrders": [],
+              "workOrders": [],
+              "capacityCalendar": {
+                "workCenters": [ {{workCentersJsonArrayContent}} ],
+                "shifts": [],
+                "holidays": [],
+                "plannedDowntimes": []
+              },
+              "shippingDurations": []
+            }
+            """;
+
+        var path = Path.Combine(Path.GetTempPath(), $"mock-erp-seed-workcenter-{Guid.NewGuid():N}.json");
+        File.WriteAllText(path, json);
+        return path;
+    }
 }

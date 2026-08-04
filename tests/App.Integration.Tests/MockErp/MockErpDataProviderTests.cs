@@ -19,6 +19,20 @@ public sealed class MockErpDataProviderTests
     }
 
     [Fact]
+    public void MapWorkCenterReadModel_ProjectsMasterDataFieldsInIsolation()
+    {
+        var transport = new MockErpWorkCenterCapacity(
+            "WC&1", 480L, 300L, 180L, "Assembly Line 1", 3, "SHIFT-STD");
+
+        var readModel = MockErpDataProvider.MapWorkCenterReadModel(transport);
+
+        Assert.Equal("WC&1", readModel.WorkCenterReference);
+        Assert.Equal("Assembly Line 1", readModel.Name);
+        Assert.Equal(3, readModel.MachineCount);
+        Assert.Equal("SHIFT-STD", readModel.DefaultShiftReference);
+    }
+
+    [Fact]
     public async Task OrderItems_PerformsOrderAndProductGets_AndAppliesApprovedMapping()
     {
         var handler = new RecordingHandler(
@@ -62,7 +76,7 @@ public sealed class MockErpDataProviderTests
             Json(new[] { new { productReference = "P/1", locationReference = "L1", onHandQuantity = 10.5m, reservedQuantity = 2.25m, availableQuantity = 8.25m } }),
             Json(new[] { new { purchaseOrderReference = "PO1", productReference = "P/1", openQuantity = 3.75m, expectedAvailabilityDateTime = start, supplierLeadTimeMinutes = 90L, status = "Open" } }),
             Json(new[] { new { workOrderReference = "WO1", orderReference = "SO 1", productReference = "P/1", status = "Open", operations = new[] { new { operationReference = "OP1", operationSequence = 10, workCenterReference = "WC&1", standardDurationMinutes = 45L, remainingDurationMinutes = 20L, status = "Ready", predecessorOperationReferences = new[] { "OP0" } } } } }),
-            Json(new { rangeStart = start, rangeEnd = end, workCenters = new[] { new { workCenterReference = "WC&1", capacityMinutes = 480L, availableCapacityMinutes = 300L, currentLoadMinutes = 180L } }, shifts = new[] { new { workCenterReference = "WC&1", start, end } }, holidays = new[] { new { date = "2026-08-02", workCenterReference = (string?)null } }, plannedDowntimes = new[] { new { workCenterReference = "WC&1", start, end, plannedDowntimeMinutes = 60L } } }),
+            Json(new { rangeStart = start, rangeEnd = end, workCenters = new[] { new { workCenterReference = "WC&1", capacityMinutes = 480L, availableCapacityMinutes = 300L, currentLoadMinutes = 180L, name = "Assembly Line 1", machineCount = 3, defaultShiftReference = "SHIFT-STD" } }, shifts = new[] { new { workCenterReference = "WC&1", start, end } }, holidays = new[] { new { date = "2026-08-02", workCenterReference = (string?)null } }, plannedDowntimes = new[] { new { workCenterReference = "WC&1", start, end, plannedDowntimeMinutes = 60L } } }),
             Json(new { originReference = "TR IST", destinationReference = "DE/BER", shippingProfileReference = "AIR&FAST", routingReference = "R1", shippingDurationMinutes = 1440L }));
         var (provider, _) = Create(handler);
 
@@ -74,7 +88,11 @@ public sealed class MockErpDataProviderTests
         Assert.Equal(45, operation.StandardDurationMinutes);
         Assert.Equal("OP0", Assert.Single(operation.PredecessorOperationReferences));
         var capacity = await provider.GetCapacityAndCalendarAsync(["WC&1", "WC 2"], start, end, default);
-        Assert.Equal(480, Assert.Single(capacity.WorkCenters).CapacityMinutes);
+        var workCenter = Assert.Single(capacity.WorkCenters);
+        Assert.Equal(480, workCenter.CapacityMinutes);
+        Assert.Equal("Assembly Line 1", workCenter.Name);
+        Assert.Equal(3, workCenter.MachineCount);
+        Assert.Equal("SHIFT-STD", workCenter.DefaultShiftReference);
         Assert.Equal(new DateOnly(2026, 8, 2), Assert.Single(capacity.Holidays).Date);
         Assert.Equal(1440, (await provider.GetShippingDurationAsync("TR IST", "DE/BER", "AIR&FAST", default))!.ShippingDurationMinutes);
 
