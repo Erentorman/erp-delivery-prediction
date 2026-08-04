@@ -25,18 +25,10 @@ public class CategoryAFieldGuardTests
     public void Validate_WithValidConfig_ShouldNotThrow()
     {
         // Arrange
-        var json = """{"configVersion": "2.0"}""";
+        var json = """{"mvpAssumptions": {}}""";
         var options = new MvpAssumptionsOptions
         {
-            ConfigVersion = "2.0",
-            WorkingCalendar = new WorkingCalendarOptions
-            {
-                StartTime = TimeSpan.Parse("08:00"),
-                EndTime = TimeSpan.Parse("17:00"),
-                BreakMinutes = 60,
-                NetMinutesPerDay = 480
-            },
-            Shipping = new ShippingOptions { UnknownRouteFallbackMinutes = 10 }
+            Shipping = new ShippingAssumptionsOptions { FallbackDurationMinutes = 10 }
         };
         var logger = new FakeLogger();
 
@@ -49,11 +41,10 @@ public class CategoryAFieldGuardTests
     public void Validate_WithMissingShippingFallback_ShouldLogWarning()
     {
         // Arrange
-        var json = """{"configVersion": "2.0"}""";
+        var json = """{"mvpAssumptions": {}}""";
         var options = new MvpAssumptionsOptions
         {
-            ConfigVersion = "2.0",
-            Shipping = new ShippingOptions { UnknownRouteFallbackMinutes = null }
+            Shipping = new ShippingAssumptionsOptions { FallbackDurationMinutes = null }
         };
         var logger = new FakeLogger();
 
@@ -61,43 +52,7 @@ public class CategoryAFieldGuardTests
         CategoryAFieldGuard.Validate(json, options, logger);
 
         // Assert
-        Assert.Contains(logger.Logs, l => l.Level == LogLevel.Warning && l.Message.Contains("shipping.unknownRouteFallbackMinutes is null"));
-    }
-
-    [Fact]
-    public void Validate_WithInvalidConfigVersion_ShouldThrow()
-    {
-        // Arrange
-        var json = """{"configVersion": "1.0"}""";
-        var options = new MvpAssumptionsOptions { ConfigVersion = "1.0" };
-        var logger = new FakeLogger();
-
-        // Act & Assert
-        var ex = Assert.Throws<InvalidOperationException>(() => CategoryAFieldGuard.Validate(json, options, logger));
-        Assert.Contains("Unexpected configVersion", ex.Message);
-    }
-
-    [Fact]
-    public void Validate_WithInconsistentNetMinutes_ShouldThrow()
-    {
-        // Arrange
-        var json = """{"configVersion": "2.0"}""";
-        var options = new MvpAssumptionsOptions
-        {
-            ConfigVersion = "2.0",
-            WorkingCalendar = new WorkingCalendarOptions
-            {
-                StartTime = TimeSpan.Parse("08:00"),
-                EndTime = TimeSpan.Parse("17:00"),
-                BreakMinutes = 60,
-                NetMinutesPerDay = 500 // Incorrect, should be 480
-            }
-        };
-        var logger = new FakeLogger();
-
-        // Act & Assert
-        var ex = Assert.Throws<InvalidOperationException>(() => CategoryAFieldGuard.Validate(json, options, logger));
-        Assert.Contains("netMinutesPerDay is inconsistent", ex.Message);
+        Assert.Contains(logger.Logs, l => l.Level == LogLevel.Warning && l.Message.Contains("shipping.fallbackDurationMinutes is null"));
     }
 
     [Theory]
@@ -115,13 +70,14 @@ public class CategoryAFieldGuardTests
         // Arrange
         var json = $$"""
         {
-            "configVersion": "2.0",
+            "mvpAssumptions": {
             "someNested": {
                 "{{forbiddenField}}": 5
             }
+            }
         }
         """;
-        var options = new MvpAssumptionsOptions { ConfigVersion = "2.0" };
+        var options = new MvpAssumptionsOptions();
         var logger = new FakeLogger();
 
         // Act & Assert

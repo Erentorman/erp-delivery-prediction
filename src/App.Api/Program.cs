@@ -42,14 +42,14 @@ builder.Services
         bearerOptions.TokenValidationParameters = JwtBearerOptionsFactory.BuildTokenValidationParameters(jwtOptions);
     });
 
-builder.Configuration.AddJsonFile("mvp-assumptions.v2.json", optional: false, reloadOnChange: true);
-builder.Services.Configure<MvpAssumptionsOptions>(builder.Configuration);
+builder.Configuration.AddMvpAssumptions();
+builder.Services.AddMvpAssumptionsOptions(builder.Configuration);
 
 var app = builder.Build();
 
 // Run CategoryAFieldGuard
 var options = app.Services.GetRequiredService<IOptions<MvpAssumptionsOptions>>().Value;
-var jsonPath = Path.Combine(builder.Environment.ContentRootPath, "mvp-assumptions.v2.json");
+var jsonPath = Path.Combine(builder.Environment.ContentRootPath, "mvp-assumptions.json");
 var jsonContent = File.ReadAllText(jsonPath);
 var logger = app.Services.GetRequiredService<ILogger<Program>>();
 CategoryAFieldGuard.Validate(jsonContent, options, logger);
