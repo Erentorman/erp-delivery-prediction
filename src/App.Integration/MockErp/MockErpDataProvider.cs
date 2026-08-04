@@ -263,13 +263,34 @@ internal sealed class MockErpDataProvider : IErpDataProvider
     private static DateTimeOffset ToUtcStartOfDay(DateOnly date) =>
         new(date.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero);
 
-    private static WorkOrderReadDto MapWorkOrder(MockErpWorkOrder value) => new(
-        value.WorkOrderReference, value.OrderReference, value.ProductReference, value.Status,
-        Array.AsReadOnly(value.Operations.Select(operation => new WorkOrderOperationReadDto(
-            operation.OperationReference, operation.OperationSequence, operation.WorkCenterReference,
-            operation.StandardDurationMinutes, operation.RemainingDurationMinutes, operation.Status,
-            Array.AsReadOnly(operation.PredecessorOperationReferences.ToArray()))).ToArray()),
-        value.RoutingReference);
+    private static WorkOrderReadDto MapWorkOrder(MockErpWorkOrder value)
+    {
+        var routing = MapRoutingReadModel(value.Routing);
+        return new WorkOrderReadDto(
+            value.WorkOrderReference,
+            value.OrderReference,
+            value.ProductReference,
+            value.Status,
+            new RoutingReadDto(
+                routing.RoutingReference,
+                Array.AsReadOnly(routing.Operations.Select(operation => new OperationReadDto(
+                    operation.OperationReference,
+                    operation.OperationSequence,
+                    operation.WorkCenterReference,
+                    operation.StandardDurationMinutes,
+                    Array.AsReadOnly(operation.PredecessorOperationReferences.ToArray())))
+                    .ToArray())));
+    }
+
+    internal static RoutingReadModel MapRoutingReadModel(MockErpRouting source) => new(
+        source.RoutingReference,
+        Array.AsReadOnly(source.Operations.Select(operation => new OperationReadModel(
+            operation.OperationReference,
+            operation.OperationSequence,
+            operation.WorkCenterReference,
+            operation.StandardDurationMinutes,
+            Array.AsReadOnly(operation.PredecessorOperationReferences.ToArray())))
+            .ToArray()));
 
     private static CapacityAndCalendarReadDto MapCapacity(MockErpCapacityAndCalendar value) => new(
         value.RangeStart, value.RangeEnd,

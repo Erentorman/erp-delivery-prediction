@@ -36,6 +36,34 @@ public sealed class MockErpControllerTests
     }
 
     [Fact]
+    public void RoutingAndOperationModelsAndJson_ContainOnlyTheMinimumContract()
+    {
+        Assert.Equal(
+            [nameof(MockErpRouting.RoutingReference), nameof(MockErpRouting.Operations)],
+            typeof(MockErpRouting).GetProperties().Select(property => property.Name));
+        Assert.Equal(
+            [
+                nameof(MockErpOperation.OperationReference),
+                nameof(MockErpOperation.OperationSequence),
+                nameof(MockErpOperation.WorkCenterReference),
+                nameof(MockErpOperation.StandardDurationMinutes),
+                nameof(MockErpOperation.PredecessorOperationReferences)
+            ],
+            typeof(MockErpOperation).GetProperties().Select(property => property.Name));
+        Assert.Equal(
+            typeof(long),
+            typeof(MockErpOperation).GetProperty(nameof(MockErpOperation.StandardDurationMinutes))?.PropertyType);
+
+        var json = JsonSerializer.Serialize(
+            new MockErpOperation("OP-10", 10, "WC-ASSEMBLY-01", 30L, []),
+            new JsonSerializerOptions(JsonSerializerDefaults.Web));
+        using var document = JsonDocument.Parse(json);
+
+        Assert.True(document.RootElement.TryGetProperty("standardDurationMinutes", out _));
+        Assert.Equal(5, document.RootElement.EnumerateObject().Count());
+    }
+
+    [Fact]
     public void GetOrdersReturnsFullRuntimeSeedCollectionAndKnownFirstOrders()
     {
         var result = new OrdersController(_store).GetAll();
@@ -176,7 +204,7 @@ public sealed class MockErpControllerTests
     [Theory]
     [InlineData(typeof(MockErpStockLevel), typeof(StockLevelReadDto))]
     [InlineData(typeof(MockErpOpenPurchaseOrder), typeof(OpenPurchaseOrderReadDto))]
-    [InlineData(typeof(MockErpWorkOrderOperation), typeof(WorkOrderOperationReadDto))]
+    [InlineData(typeof(MockErpOperation), typeof(OperationReadDto))]
     [InlineData(typeof(MockErpWorkCenter), typeof(WorkCenterReadDto))]
     [InlineData(typeof(MockErpWorkingShift), typeof(WorkingShiftReadDto))]
     [InlineData(typeof(MockErpHoliday), typeof(HolidayReadDto))]
@@ -202,8 +230,11 @@ public sealed class MockErpControllerTests
     public void AggregateResponseModelsContainNestedApplicationReadDtoInformation()
     {
         Assert.Equal(
-            typeof(IReadOnlyList<MockErpWorkOrderOperation>),
-            typeof(MockErpWorkOrder).GetProperty(nameof(MockErpWorkOrder.Operations))?.PropertyType);
+            typeof(MockErpRouting),
+            typeof(MockErpWorkOrder).GetProperty(nameof(MockErpWorkOrder.Routing))?.PropertyType);
+        Assert.Equal(
+            typeof(IReadOnlyList<MockErpOperation>),
+            typeof(MockErpRouting).GetProperty(nameof(MockErpRouting.Operations))?.PropertyType);
 
         var capacityProperties = typeof(MockErpCapacityAndCalendar).GetProperties()
             .Select(property => property.Name);

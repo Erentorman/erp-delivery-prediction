@@ -44,6 +44,44 @@ public sealed class MockErpDataProviderTests
     }
 
     [Fact]
+    public void MapRoutingReadModel_PreservesTheMinimumContractAndLongDuration()
+    {
+        var source = new MockErpRouting(
+            "ROUTE-P1-STD",
+            [new MockErpOperation("OP-20", 20, "WC&1", 2_147_483_648L, ["OP-10"])]);
+
+        var result = MockErpDataProvider.MapRoutingReadModel(source);
+        var operation = Assert.Single(result.Operations);
+
+        Assert.Equal("ROUTE-P1-STD", result.RoutingReference);
+        Assert.Equal("OP-20", operation.OperationReference);
+        Assert.Equal(20, operation.OperationSequence);
+        Assert.Equal("WC&1", operation.WorkCenterReference);
+        Assert.Equal(2_147_483_648L, operation.StandardDurationMinutes);
+        Assert.Equal("OP-10", Assert.Single(operation.PredecessorOperationReferences));
+    }
+
+    [Fact]
+    public void RoutingReadModels_ContainOnlyTheMinimumContract()
+    {
+        Assert.Equal(
+            [nameof(RoutingReadModel.RoutingReference), nameof(RoutingReadModel.Operations)],
+            typeof(RoutingReadModel).GetProperties().Select(property => property.Name));
+        Assert.Equal(
+            [
+                nameof(OperationReadModel.OperationReference),
+                nameof(OperationReadModel.OperationSequence),
+                nameof(OperationReadModel.WorkCenterReference),
+                nameof(OperationReadModel.StandardDurationMinutes),
+                nameof(OperationReadModel.PredecessorOperationReferences)
+            ],
+            typeof(OperationReadModel).GetProperties().Select(property => property.Name));
+        Assert.Equal(
+            typeof(long),
+            typeof(OperationReadModel).GetProperty(nameof(OperationReadModel.StandardDurationMinutes))?.PropertyType);
+    }
+
+    [Fact]
     public async Task OrderItems_PerformsOrderAndProductGets_AndAppliesApprovedMapping()
     {
         var handler = new RecordingHandler(
@@ -86,7 +124,7 @@ public sealed class MockErpDataProviderTests
             Json(new[] { new { componentId = "C-1", description = "Part", quantity = 1.25m, unit = "KG" } }),
             Json(new[] { new { productReference = "P/1", locationReference = "L1", onHandQuantity = 10.5m, reservedQuantity = 2.25m, availableQuantity = 8.25m } }),
             Json(new[] { new { purchaseOrderReference = "PO1", productReference = "P/1", openQuantity = 3.75m, expectedAvailabilityDateTime = start, supplierLeadTimeMinutes = 90L, status = "Open" } }),
-            Json(new[] { new { workOrderReference = "WO1", orderReference = "SO 1", productReference = "P/1", status = "Open", operations = new[] { new { operationReference = "OP1", operationSequence = 10, workCenterReference = "WC&1", standardDurationMinutes = 45L, remainingDurationMinutes = 20L, status = "Ready", predecessorOperationReferences = new[] { "OP0" } } }, routingReference = "ROUTE-P1-STD" } }),
+            Json(new[] { new { workOrderReference = "WO1", orderReference = "SO 1", productReference = "P/1", status = "Open", routing = new { routingReference = "ROUTE-P1-STD", operations = new[] { new { operationReference = "OP1", operationSequence = 10, workCenterReference = "WC&1", standardDurationMinutes = 2_147_483_648L, predecessorOperationReferences = new[] { "OP0" } } } } } }),
             Json(new { rangeStart = start, rangeEnd = end, workCenters = new[] { new { workCenterRef = "WC&1", name = "Assembly Line 1" } }, shifts = new[] { new { workCenterReference = "WC&1", start, end } }, holidays = new[] { new { date = "2026-08-02", workCenterReference = (string?)null } }, plannedDowntimes = new[] { new { workCenterReference = "WC&1", start, end, plannedDowntimeMinutes = 60L } } }),
             Json(new { originReference = "TR IST", destinationReference = "DE/BER", shippingProfileReference = "AIR&FAST", routingReference = "R1", shippingDurationMinutes = 1440L }));
         var (provider, _) = Create(handler);
@@ -96,10 +134,10 @@ public sealed class MockErpDataProviderTests
         Assert.Equal(8.25m, Assert.Single(await provider.GetStockLevelsAsync(["P/1", "P 2"], default)).AvailableQuantity);
         Assert.Equal(90, Assert.Single(await provider.GetOpenPurchaseOrdersAsync(["P/1"], default)).SupplierLeadTimeMinutes);
         var workOrder = Assert.Single(await provider.GetWorkOrdersAsync("SO 1", ["P/1", "P 2"], default));
-        var operation = Assert.Single(workOrder.Operations);
-        Assert.Equal(45, operation.StandardDurationMinutes);
+        var operation = Assert.Single(workOrder.Routing.Operations);
+        Assert.Equal(2_147_483_648L, operation.StandardDurationMinutes);
         Assert.Equal("OP0", Assert.Single(operation.PredecessorOperationReferences));
-        Assert.Equal("ROUTE-P1-STD", workOrder.RoutingReference);
+        Assert.Equal("ROUTE-P1-STD", workOrder.Routing.RoutingReference);
         var capacity = await provider.GetCapacityAndCalendarAsync(["WC&1", "WC 2"], start, end, default);
         var workCenter = Assert.Single(capacity.WorkCenters);
         Assert.Equal("WC&1", workCenter.WorkCenterRef);

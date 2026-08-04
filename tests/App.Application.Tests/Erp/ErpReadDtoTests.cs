@@ -13,24 +13,44 @@ public sealed class ErpReadDtoTests
     }
 
     [Fact]
+    public void RoutingAndOperationReadDtos_ContainOnlyTheMinimumContract()
+    {
+        Assert.Equal(
+            [nameof(RoutingReadDto.RoutingReference), nameof(RoutingReadDto.Operations)],
+            typeof(RoutingReadDto).GetProperties().Select(property => property.Name));
+        Assert.Equal(
+            [
+                nameof(OperationReadDto.OperationReference),
+                nameof(OperationReadDto.OperationSequence),
+                nameof(OperationReadDto.WorkCenterReference),
+                nameof(OperationReadDto.StandardDurationMinutes),
+                nameof(OperationReadDto.PredecessorOperationReferences)
+            ],
+            typeof(OperationReadDto).GetProperties().Select(property => property.Name));
+        Assert.Equal(
+            typeof(long),
+            typeof(OperationReadDto).GetProperty(nameof(OperationReadDto.StandardDurationMinutes))?.PropertyType);
+    }
+
+    [Fact]
     public void RepresentativeDtos_PreserveDeterministicValues()
     {
         var requestedDelivery = new DateTimeOffset(2026, 8, 10, 9, 30, 0, TimeSpan.Zero);
-        var operation = new WorkOrderOperationReadDto(
+        var operation = new OperationReadDto(
             "OP-20",
             20,
             "WC-ASSEMBLY",
             90,
-            45,
-            "InProgress",
             new[] { "OP-10" });
+        var routing = new RoutingReadDto(
+            "ROUTE-PRODUCT-1-STD",
+            new[] { operation });
         var workOrder = new WorkOrderReadDto(
             "WO-100",
             "SO-100",
             "PRODUCT-1",
             "Released",
-            new[] { operation },
-            "ROUTE-PRODUCT-1-STD");
+            routing);
         var order = new OrderReadDto("SO-100", requestedDelivery, "High", "Planned");
         var item = new OrderItemReadDto("SO-100", "10", "PRODUCT-1", 12.5m, "EA");
         var shipping = new ShippingDurationReadDto(
@@ -44,8 +64,9 @@ public sealed class ErpReadDtoTests
         Assert.Equal(requestedDelivery, order.RequestedDeliveryDateTime);
         Assert.Equal(12.5m, item.OrderedQuantity);
         Assert.Equal("EA", item.UnitOfMeasure);
-        Assert.Same(operation, Assert.Single(workOrder.Operations));
+        Assert.Same(operation, Assert.Single(workOrder.Routing.Operations));
         Assert.Equal("OP-10", Assert.Single(operation.PredecessorOperationReferences));
+        Assert.Equal("ROUTE-PRODUCT-1-STD", workOrder.Routing.RoutingReference);
         Assert.Equal(1_440, shipping.ShippingDurationMinutes);
         Assert.Equal("ROUTE-7", shipping.RoutingReference);
     }

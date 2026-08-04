@@ -1,0 +1,58 @@
+{
+  "orders": [],
+  "products": [],
+  "boms": [],
+  "stockLevels": [],
+  "openPurchaseOrders": [],
+  "workOrders": [
+    {
+      "workOrderReference": "WO-ROUTING-01",
+      "orderReference": "SO-1",
+      "productReference": "P-1",
+      "status": "Released",
+      "routing": {
+        "routingReference": "ROUTE-P-1-STD",
+        "operations": [
+          {
+            "operationReference": "OP-10",
+            "operationSequence": 10,
+            "workCenterReference": "WC-ASSEMBLY-01",
+            "standardDurationMinutes": 2147483648,
+            "predecessorOperationReferences": []
+          },
+          {
+            "operationReference": "OP-20",
+            "operationSequence": 20,
+            "workCenterReference": "WC-ASSEMBLY-01",
+            "standardDurationMinutes": 45,
+            "predecessorOperationReferences": [
+              "OP-10"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "workOrderReference": "WO-EMPTY-ROUTING",
+      "orderReference": "SO-1",
+      "productReference": "P-1",
+      "status": "Released",
+      "routing": {
+        "routingReference": "ROUTE-P-1-EMPTY",
+        "operations": []
+      }
+    }
+  ],
+  "capacityCalendar": {
+    "workCenters": [
+      {
+        "workCenterRef": "WC-ASSEMBLY-01",
+        "name": "Assembly Line 1"
+      }
+    ],
+    "shifts": [],
+    "holidays": [],
+    "plannedDowntimes": []
+  },
+  "shippingDurations": []
+}

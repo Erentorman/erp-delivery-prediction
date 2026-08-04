@@ -37,16 +37,18 @@ public sealed record MockErpWorkOrder(
     string? OrderReference,
     string ProductReference,
     string Status,
-    IReadOnlyList<MockErpWorkOrderOperation> Operations,
-    string? RoutingReference);
+    MockErpRouting Routing);
 
-public sealed record MockErpWorkOrderOperation(
+// Pending ERP Decision: The authoritative ERP source and final field ownership for routing and operation master data must be confirmed with the ERP team.
+public sealed record MockErpRouting(
+    string RoutingReference,
+    IReadOnlyList<MockErpOperation> Operations);
+
+public sealed record MockErpOperation(
     string OperationReference,
     int OperationSequence,
     string WorkCenterReference,
     long StandardDurationMinutes,
-    long? RemainingDurationMinutes,
-    string Status,
     IReadOnlyList<string> PredecessorOperationReferences);
 
 public sealed record MockErpCapacityAndCalendar(

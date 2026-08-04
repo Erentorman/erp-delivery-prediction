@@ -255,297 +255,47 @@ public sealed class MockErpDataStoreTests
     }
 
     [Fact]
-    public void SingleOperationRoutingIsValid()
+    public void RoutingContractFixtureLoadsValidAndEmptyRoutings()
     {
-        var seedPath = WriteTempSeedWithWorkOrders(
-            """
-            {
-              "workOrderReference": "WO-1",
-              "orderReference": "SO-1",
-              "productReference": "P-1",
-              "status": "Released",
-              "routingReference": "ROUTE-P-1-STD",
-              "operations": [
-                {
-                  "operationReference": "OP-10",
-                  "operationSequence": 10,
-                  "workCenterReference": "WC-ASSEMBLY-01",
-                  "standardDurationMinutes": 60,
-                  "remainingDurationMinutes": null,
-                  "status": "Ready",
-                  "predecessorOperationReferences": []
-                }
-              ]
-            }
-            """);
+        var seedPath = Path.Combine(
+            AppContext.BaseDirectory,
+            "Fixtures",
+            "MockErp",
+            "RoutingContract",
+            "mock-erp-seed.json");
 
         var store = new MockErpDataStore(seedPath);
-        var workOrder = Assert.Single(store.GetWorkOrders("SO-1", ["P-1"]));
-        var operation = Assert.Single(workOrder.Operations);
+        var workOrders = store.GetWorkOrders("SO-1", ["P-1"]);
 
-        Assert.Equal("ROUTE-P-1-STD", workOrder.RoutingReference);
-        Assert.Equal("OP-10", operation.OperationReference);
-        Assert.Equal(60, operation.StandardDurationMinutes);
-        Assert.Empty(operation.PredecessorOperationReferences);
+        Assert.Equal(2, workOrders.Count);
+        var populated = Assert.Single(workOrders, item => item.WorkOrderReference == "WO-ROUTING-01");
+        Assert.Equal("ROUTE-P-1-STD", populated.Routing.RoutingReference);
+        Assert.Equal(2_147_483_648L, populated.Routing.Operations[0].StandardDurationMinutes);
+        Assert.Equal("OP-10", Assert.Single(populated.Routing.Operations[1].PredecessorOperationReferences));
+        Assert.Empty(Assert.Single(workOrders, item => item.WorkOrderReference == "WO-EMPTY-ROUTING").Routing.Operations);
     }
 
     [Fact]
-    public void ThreeOperationLinearRoutingIsValid()
+    public void UnknownWorkCenterReferenceStillFailsAtTheSeedBoundary()
     {
-        var seedPath = WriteTempSeedWithWorkOrders(
+        var seedPath = WriteTempSeedWithRouting(
             """
             {
-              "workOrderReference": "WO-1",
-              "orderReference": "SO-1",
-              "productReference": "P-1",
-              "status": "Released",
-              "routingReference": "ROUTE-P-1-STD",
-              "operations": [
-                { "operationReference": "OP-10", "operationSequence": 10, "workCenterReference": "WC-ASSEMBLY-01", "standardDurationMinutes": 30, "remainingDurationMinutes": null, "status": "Ready", "predecessorOperationReferences": [] },
-                { "operationReference": "OP-20", "operationSequence": 20, "workCenterReference": "WC-ASSEMBLY-01", "standardDurationMinutes": 45, "remainingDurationMinutes": null, "status": "Pending", "predecessorOperationReferences": ["OP-10"] },
-                { "operationReference": "OP-30", "operationSequence": 30, "workCenterReference": "WC-ASSEMBLY-01", "standardDurationMinutes": 15, "remainingDurationMinutes": null, "status": "Pending", "predecessorOperationReferences": ["OP-20"] }
-              ]
-            }
-            """);
-
-        var store = new MockErpDataStore(seedPath);
-        var operations = Assert.Single(store.GetWorkOrders("SO-1", ["P-1"])).Operations;
-
-        Assert.Equal(3, operations.Count);
-        Assert.Empty(operations[0].PredecessorOperationReferences);
-        Assert.Equal("OP-10", Assert.Single(operations[1].PredecessorOperationReferences));
-        Assert.Equal("OP-20", Assert.Single(operations[2].PredecessorOperationReferences));
-    }
-
-    [Fact]
-    public void ParallelPredecessorRoutingIsValid()
-    {
-        var seedPath = WriteTempSeedWithWorkOrders(
-            """
-            {
-              "workOrderReference": "WO-1",
-              "orderReference": "SO-1",
-              "productReference": "P-1",
-              "status": "Released",
-              "routingReference": "ROUTE-P-1-STD",
-              "operations": [
-                { "operationReference": "OP-10", "operationSequence": 10, "workCenterReference": "WC-ASSEMBLY-01", "standardDurationMinutes": 30, "remainingDurationMinutes": null, "status": "Ready", "predecessorOperationReferences": [] },
-                { "operationReference": "OP-20", "operationSequence": 20, "workCenterReference": "WC-ASSEMBLY-01", "standardDurationMinutes": 45, "remainingDurationMinutes": null, "status": "Ready", "predecessorOperationReferences": [] },
-                { "operationReference": "OP-30", "operationSequence": 30, "workCenterReference": "WC-ASSEMBLY-01", "standardDurationMinutes": 15, "remainingDurationMinutes": null, "status": "Pending", "predecessorOperationReferences": ["OP-10", "OP-20"] }
-              ]
-            }
-            """);
-
-        var store = new MockErpDataStore(seedPath);
-        var operations = Assert.Single(store.GetWorkOrders("SO-1", ["P-1"])).Operations;
-
-        Assert.Equal(["OP-10", "OP-20"], operations[2].PredecessorOperationReferences);
-    }
-
-    [Fact]
-    public void EmptyWorkOrdersCollectionIsValid()
-    {
-        var seedPath = WriteTempSeedWithWorkOrders(workOrdersJsonArrayContent: string.Empty);
-
-        var store = new MockErpDataStore(seedPath);
-
-        Assert.Empty(store.GetWorkOrders("SO-1", ["P-1"]));
-    }
-
-    [Theory]
-    [InlineData(0)]
-    [InlineData(-5)]
-    public void OperationWithNonPositiveDurationFailsFast(long duration)
-    {
-        var seedPath = WriteTempSeedWithWorkOrders(SingleOperationWorkOrderJson(
-            duration: duration.ToString(),
-            sequence: "10",
-            predecessors: "[]"));
-
-        var exception = Assert.Throws<InvalidOperationException>(() => new MockErpDataStore(seedPath));
-
-        Assert.Contains("WO-1", exception.Message);
-        Assert.Contains("OP-10", exception.Message);
-        Assert.Contains("StandardDurationMinutes", exception.Message);
-    }
-
-    [Theory]
-    [InlineData(0)]
-    [InlineData(-1)]
-    public void OperationWithNonPositiveSequenceFailsFast(int sequence)
-    {
-        var seedPath = WriteTempSeedWithWorkOrders(SingleOperationWorkOrderJson(
-            duration: "30",
-            sequence: sequence.ToString(),
-            predecessors: "[]"));
-
-        var exception = Assert.Throws<InvalidOperationException>(() => new MockErpDataStore(seedPath));
-
-        Assert.Contains("WO-1", exception.Message);
-        Assert.Contains("OP-10", exception.Message);
-        Assert.Contains("OperationSequence", exception.Message);
-    }
-
-    [Fact]
-    public void DuplicateOperationReferenceWithinWorkOrderFailsFast()
-    {
-        var seedPath = WriteTempSeedWithWorkOrders(
-            """
-            {
-              "workOrderReference": "WO-1",
-              "orderReference": "SO-1",
-              "productReference": "P-1",
-              "status": "Released",
-              "routingReference": null,
-              "operations": [
-                { "operationReference": "OP-10", "operationSequence": 10, "workCenterReference": "WC-ASSEMBLY-01", "standardDurationMinutes": 30, "remainingDurationMinutes": null, "status": "Ready", "predecessorOperationReferences": [] },
-                { "operationReference": "OP-10", "operationSequence": 20, "workCenterReference": "WC-ASSEMBLY-01", "standardDurationMinutes": 30, "remainingDurationMinutes": null, "status": "Ready", "predecessorOperationReferences": [] }
-              ]
+              "operationReference": "OP-10",
+              "operationSequence": 10,
+              "workCenterReference": "WC-UNKNOWN",
+              "standardDurationMinutes": 30,
+              "predecessorOperationReferences": []
             }
             """);
 
         var exception = Assert.Throws<InvalidOperationException>(() => new MockErpDataStore(seedPath));
 
-        Assert.Contains("duplicate operation reference", exception.Message);
-        Assert.Contains("WO-1", exception.Message);
-    }
-
-    [Fact]
-    public void DuplicateOperationSequenceWithinWorkOrderFailsFast()
-    {
-        var seedPath = WriteTempSeedWithWorkOrders(
-            """
-            {
-              "workOrderReference": "WO-1",
-              "orderReference": "SO-1",
-              "productReference": "P-1",
-              "status": "Released",
-              "routingReference": null,
-              "operations": [
-                { "operationReference": "OP-10", "operationSequence": 10, "workCenterReference": "WC-ASSEMBLY-01", "standardDurationMinutes": 30, "remainingDurationMinutes": null, "status": "Ready", "predecessorOperationReferences": [] },
-                { "operationReference": "OP-20", "operationSequence": 10, "workCenterReference": "WC-ASSEMBLY-01", "standardDurationMinutes": 30, "remainingDurationMinutes": null, "status": "Ready", "predecessorOperationReferences": [] }
-              ]
-            }
-            """);
-
-        var exception = Assert.Throws<InvalidOperationException>(() => new MockErpDataStore(seedPath));
-
-        Assert.Contains("duplicate operation sequence", exception.Message);
-        Assert.Contains("WO-1", exception.Message);
-    }
-
-    [Fact]
-    public void SelfPredecessorFailsFast()
-    {
-        var seedPath = WriteTempSeedWithWorkOrders(SingleOperationWorkOrderJson(
-            duration: "30",
-            sequence: "10",
-            predecessors: """["OP-10"]"""));
-
-        var exception = Assert.Throws<InvalidOperationException>(() => new MockErpDataStore(seedPath));
-
-        Assert.Contains("WO-1", exception.Message);
-        Assert.Contains("OP-10", exception.Message);
-        Assert.Contains("cannot list itself as a predecessor", exception.Message);
-    }
-
-    [Fact]
-    public void UnknownPredecessorWithinSameWorkOrderFailsFast()
-    {
-        var seedPath = WriteTempSeedWithWorkOrders(SingleOperationWorkOrderJson(
-            duration: "30",
-            sequence: "10",
-            predecessors: """["OP-UNKNOWN"]"""));
-
-        var exception = Assert.Throws<InvalidOperationException>(() => new MockErpDataStore(seedPath));
-
-        Assert.Contains("WO-1", exception.Message);
-        Assert.Contains("OP-UNKNOWN", exception.Message);
-        Assert.Contains("not part of the same work order", exception.Message);
-    }
-
-    [Fact]
-    public void PredecessorFromAnotherWorkOrderFailsFast()
-    {
-        var seedPath = WriteTempSeedWithWorkOrders(
-            """
-            {
-              "workOrderReference": "WO-1",
-              "orderReference": "SO-1",
-              "productReference": "P-1",
-              "status": "Released",
-              "routingReference": null,
-              "operations": [
-                { "operationReference": "OP-10", "operationSequence": 10, "workCenterReference": "WC-ASSEMBLY-01", "standardDurationMinutes": 30, "remainingDurationMinutes": null, "status": "Ready", "predecessorOperationReferences": [] }
-              ]
-            },
-            {
-              "workOrderReference": "WO-2",
-              "orderReference": "SO-2",
-              "productReference": "P-1",
-              "status": "Released",
-              "routingReference": null,
-              "operations": [
-                { "operationReference": "OP-20", "operationSequence": 10, "workCenterReference": "WC-ASSEMBLY-01", "standardDurationMinutes": 30, "remainingDurationMinutes": null, "status": "Ready", "predecessorOperationReferences": ["OP-10"] }
-              ]
-            }
-            """);
-
-        var exception = Assert.Throws<InvalidOperationException>(() => new MockErpDataStore(seedPath));
-
-        Assert.Contains("WO-2", exception.Message);
-        Assert.Contains("OP-10", exception.Message);
-        Assert.Contains("not part of the same work order", exception.Message);
-    }
-
-    [Fact]
-    public void UnknownWorkCenterReferenceFailsFast()
-    {
-        var seedPath = WriteTempSeedWithWorkOrders(
-            """
-            {
-              "workOrderReference": "WO-1",
-              "orderReference": "SO-1",
-              "productReference": "P-1",
-              "status": "Released",
-              "routingReference": null,
-              "operations": [
-                { "operationReference": "OP-10", "operationSequence": 10, "workCenterReference": "WC-UNKNOWN", "standardDurationMinutes": 30, "remainingDurationMinutes": null, "status": "Ready", "predecessorOperationReferences": [] }
-              ]
-            }
-            """);
-
-        var exception = Assert.Throws<InvalidOperationException>(() => new MockErpDataStore(seedPath));
-
-        Assert.Contains("WO-1", exception.Message);
-        Assert.Contains("OP-10", exception.Message);
         Assert.Contains("unknown work center", exception.Message);
         Assert.Contains("WC-UNKNOWN", exception.Message);
     }
 
-    private static string SingleOperationWorkOrderJson(string duration, string sequence, string predecessors) =>
-        $$"""
-        {
-          "workOrderReference": "WO-1",
-          "orderReference": "SO-1",
-          "productReference": "P-1",
-          "status": "Released",
-          "routingReference": null,
-          "operations": [
-            {
-              "operationReference": "OP-10",
-              "operationSequence": {{sequence}},
-              "workCenterReference": "WC-ASSEMBLY-01",
-              "standardDurationMinutes": {{duration}},
-              "remainingDurationMinutes": null,
-              "status": "Ready",
-              "predecessorOperationReferences": {{predecessors}}
-            }
-          ]
-        }
-        """;
-
-    private static string WriteTempSeedWithWorkOrders(string workOrdersJsonArrayContent)
+    private static string WriteTempSeedWithRouting(string operationsJson)
     {
         var json = $$"""
             {
@@ -554,14 +304,18 @@ public sealed class MockErpDataStoreTests
               "boms": [],
               "stockLevels": [],
               "openPurchaseOrders": [],
-              "workOrders": [ {{workOrdersJsonArrayContent}} ],
+              "workOrders": [{
+                "workOrderReference": "WO-1",
+                "orderReference": "SO-1",
+                "productReference": "P-1",
+                "status": "Released",
+                "routing": {
+                  "routingReference": "ROUTE-P-1-STD",
+                  "operations": [{{operationsJson}}]
+                }
+              }],
               "capacityCalendar": {
-                "workCenters": [
-                  {
-                    "workCenterRef": "WC-ASSEMBLY-01",
-                    "name": "Assembly Line 1"
-                  }
-                ],
+                "workCenters": [{ "workCenterRef": "WC-ASSEMBLY-01", "name": "Assembly Line 1" }],
                 "shifts": [],
                 "holidays": [],
                 "plannedDowntimes": []
@@ -570,7 +324,7 @@ public sealed class MockErpDataStoreTests
             }
             """;
 
-        var path = Path.Combine(Path.GetTempPath(), $"mock-erp-seed-workorder-{Guid.NewGuid():N}.json");
+        var path = Path.Combine(Path.GetTempPath(), $"mock-erp-seed-routing-{Guid.NewGuid():N}.json");
         File.WriteAllText(path, json);
         return path;
     }
