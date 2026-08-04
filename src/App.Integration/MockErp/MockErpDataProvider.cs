@@ -278,24 +278,17 @@ internal sealed class MockErpDataProvider : IErpDataProvider
         Array.AsReadOnly(value.Holidays.Select(x => new HolidayReadDto(x.Date, x.WorkCenterReference)).ToArray()),
         Array.AsReadOnly(value.PlannedDowntimes.Select(x => new PlannedDowntimeReadDto(x.WorkCenterReference, x.Start, x.End, x.PlannedDowntimeMinutes)).ToArray()));
 
-    private static WorkCenterCapacityReadDto MapWorkCenter(MockErpWorkCenterCapacity source)
+    private static WorkCenterReadDto MapWorkCenter(MockErpWorkCenter source)
     {
         var readModel = MapWorkCenterReadModel(source);
-        return new WorkCenterCapacityReadDto(
-            source.WorkCenterReference,
-            source.CapacityMinutes,
-            source.AvailableCapacityMinutes,
-            source.CurrentLoadMinutes,
-            readModel.Name,
-            readModel.MachineCount,
-            readModel.DefaultShiftReference);
+        return new WorkCenterReadDto(readModel.WorkCenterRef, readModel.Name);
     }
 
     // Isolated master-data projection (SAD/T-358): kept as its own step, not inlined into
     // MapWorkCenter, so Integration-side master data can be read/tested independently of
-    // the Application-facing capacity DTO shape.
-    internal static WorkCenterReadModel MapWorkCenterReadModel(MockErpWorkCenterCapacity source) =>
-        new(source.WorkCenterReference, source.Name, source.MachineCount, source.DefaultShiftReference);
+    // the minimal Application-facing Work Center DTO shape.
+    internal static WorkCenterReadModel MapWorkCenterReadModel(MockErpWorkCenter source) =>
+        new(source.WorkCenterRef, source.Name);
 }
 
 internal sealed record RetryPolicy(TimeSpan AttemptTimeout, int MaximumAttempts, IReadOnlyList<TimeSpan> RetryDelays);

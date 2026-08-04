@@ -5,6 +5,14 @@ namespace App.Application.Tests.Erp;
 public sealed class ErpReadDtoTests
 {
     [Fact]
+    public void WorkCenterReadDto_ContainsOnlyTheMinimumContract()
+    {
+        Assert.Equal(
+            [nameof(WorkCenterReadDto.WorkCenterRef), nameof(WorkCenterReadDto.Name)],
+            typeof(WorkCenterReadDto).GetProperties().Select(property => property.Name));
+    }
+
+    [Fact]
     public void RepresentativeDtos_PreserveDeterministicValues()
     {
         var requestedDelivery = new DateTimeOffset(2026, 8, 10, 9, 30, 0, TimeSpan.Zero);
@@ -47,7 +55,7 @@ public sealed class ErpReadDtoTests
     {
         var rangeStart = new DateTimeOffset(2026, 8, 3, 0, 0, 0, TimeSpan.Zero);
         var rangeEnd = rangeStart.AddDays(7);
-        var capacity = new WorkCenterCapacityReadDto("WC-1", 2_400, 1_800, 600, "Assembly Line 1", 3, "SHIFT-STD");
+        var workCenter = new WorkCenterReadDto("WC-1", "Assembly Line 1");
         var shift = new WorkingShiftReadDto(
             "WC-1",
             rangeStart.AddHours(8),
@@ -61,14 +69,14 @@ public sealed class ErpReadDtoTests
         var snapshot = new CapacityAndCalendarReadDto(
             rangeStart,
             rangeEnd,
-            new[] { capacity },
+            new[] { workCenter },
             new[] { shift },
             new[] { holiday },
             new[] { downtime });
 
         Assert.Equal(rangeStart, snapshot.RangeStart);
         Assert.Equal(rangeEnd, snapshot.RangeEnd);
-        Assert.Same(capacity, Assert.Single(snapshot.WorkCenters));
+        Assert.Same(workCenter, Assert.Single(snapshot.WorkCenters));
         Assert.Same(shift, Assert.Single(snapshot.Shifts));
         Assert.Same(holiday, Assert.Single(snapshot.Holidays));
         Assert.Same(downtime, Assert.Single(snapshot.PlannedDowntimes));
