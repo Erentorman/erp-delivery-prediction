@@ -8,6 +8,7 @@ using App.Persistence;
 using App.Persistence.IntegrationLogging;
 using App.Api.Configuration;
 using App.Application.Contracts.Configuration;
+using App.Application.Erp;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -32,6 +33,7 @@ builder.Services.AddScoped<IIntegrationLogWriter, IntegrationLogWriter>();
 builder.Services.AddInfrastructureSecurity(builder.Configuration);
 builder.Services.AddShippingLookup();
 builder.Services.AddSystemClock();
+builder.Services.AddErpBatchReader();
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer();
