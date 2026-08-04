@@ -36,7 +36,7 @@ public sealed class ErpDataProviderContractTests
         typeof(WorkOrderReadDto),
         typeof(WorkOrderOperationReadDto),
         typeof(CapacityAndCalendarReadDto),
-        typeof(WorkCenterCapacityReadDto),
+        typeof(WorkCenterReadDto),
         typeof(WorkingShiftReadDto),
         typeof(HolidayReadDto),
         typeof(PlannedDowntimeReadDto),

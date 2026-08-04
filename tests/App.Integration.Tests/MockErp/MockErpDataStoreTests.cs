@@ -184,18 +184,17 @@ public sealed class MockErpDataStoreTests
     [Fact]
     public void ValidWorkCenterMasterDataRoundTripsThroughTheStore()
     {
-        var seedPath = WriteTempSeedWithWorkCenters(
-            """
-            {
-              "workCenterReference": "WC-ASSEMBLY-01",
-              "capacityMinutes": 480,
-              "availableCapacityMinutes": 360,
-              "currentLoadMinutes": 120,
-              "name": "Assembly Line 1",
-              "machineCount": 3,
-              "defaultShiftReference": "SHIFT-STD"
-            }
-            """);
+        var seedPath = Path.Combine(
+            AppContext.BaseDirectory,
+            "Fixtures",
+            "MockErp",
+            "WorkCenterContract",
+            "mock-erp-seed.json");
+
+        var fixtureJson = File.ReadAllText(seedPath);
+        Assert.Contains("\"workCenterRef\"", fixtureJson);
+        Assert.Contains("\"name\"", fixtureJson);
+        Assert.DoesNotContain("workCenterReference", fixtureJson);
 
         var store = new MockErpDataStore(seedPath);
         var result = store.GetCapacityAndCalendar(
@@ -204,33 +203,8 @@ public sealed class MockErpDataStoreTests
             DateTimeOffset.Parse("2026-08-31T23:59:59+03:00"));
 
         var workCenter = Assert.Single(result.WorkCenters);
-        Assert.Equal("WC-ASSEMBLY-01", workCenter.WorkCenterReference);
+        Assert.Equal("WC-ASSEMBLY-01", workCenter.WorkCenterRef);
         Assert.Equal("Assembly Line 1", workCenter.Name);
-        Assert.Equal(3, workCenter.MachineCount);
-        Assert.Equal("SHIFT-STD", workCenter.DefaultShiftReference);
-    }
-
-    [Fact]
-    public void WorkCenterWithMachineCountBelowOneFailsFast()
-    {
-        var seedPath = WriteTempSeedWithWorkCenters(
-            """
-            {
-              "workCenterReference": "WC-ASSEMBLY-01",
-              "capacityMinutes": 480,
-              "availableCapacityMinutes": 360,
-              "currentLoadMinutes": 120,
-              "name": "Assembly Line 1",
-              "machineCount": 0,
-              "defaultShiftReference": null
-            }
-            """);
-
-        var exception = Assert.Throws<InvalidOperationException>(
-            () => new MockErpDataStore(seedPath));
-
-        Assert.Contains("MachineCount", exception.Message);
-        Assert.Contains("WC-ASSEMBLY-01", exception.Message);
     }
 
     [Fact]
@@ -239,22 +213,12 @@ public sealed class MockErpDataStoreTests
         var seedPath = WriteTempSeedWithWorkCenters(
             """
             {
-              "workCenterReference": "WC-ASSEMBLY-01",
-              "capacityMinutes": 480,
-              "availableCapacityMinutes": 360,
-              "currentLoadMinutes": 120,
-              "name": "Assembly Line 1",
-              "machineCount": 2,
-              "defaultShiftReference": null
+              "workCenterRef": "WC-ASSEMBLY-01",
+              "name": "Assembly Line 1"
             },
             {
-              "workCenterReference": "WC-ASSEMBLY-01",
-              "capacityMinutes": 240,
-              "availableCapacityMinutes": 120,
-              "currentLoadMinutes": 60,
-              "name": "Assembly Line 1 (duplicate)",
-              "machineCount": 1,
-              "defaultShiftReference": null
+              "workCenterRef": "WC-ASSEMBLY-01",
+              "name": "Assembly Line 1 (duplicate)"
             }
             """);
 
@@ -594,13 +558,8 @@ public sealed class MockErpDataStoreTests
               "capacityCalendar": {
                 "workCenters": [
                   {
-                    "workCenterReference": "WC-ASSEMBLY-01",
-                    "capacityMinutes": 480,
-                    "availableCapacityMinutes": 480,
-                    "currentLoadMinutes": 0,
-                    "name": "Assembly Line 1",
-                    "machineCount": 2,
-                    "defaultShiftReference": null
+                    "workCenterRef": "WC-ASSEMBLY-01",
+                    "name": "Assembly Line 1"
                   }
                 ],
                 "shifts": [],

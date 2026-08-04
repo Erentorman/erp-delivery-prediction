@@ -31,5 +31,8 @@
     <None Update="Fixtures\ErpSeedConverterPreview\*.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Update="Fixtures\MockErp\WorkCenterContract\mock-erp-seed.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 </Project>

@@ -52,19 +52,14 @@ public sealed record MockErpWorkOrderOperation(
 public sealed record MockErpCapacityAndCalendar(
     DateTimeOffset RangeStart,
     DateTimeOffset RangeEnd,
-    IReadOnlyList<MockErpWorkCenterCapacity> WorkCenters,
+    IReadOnlyList<MockErpWorkCenter> WorkCenters,
     IReadOnlyList<MockErpWorkingShift> Shifts,
     IReadOnlyList<MockErpHoliday> Holidays,
     IReadOnlyList<MockErpPlannedDowntime> PlannedDowntimes);
 
-public sealed record MockErpWorkCenterCapacity(
-    string WorkCenterReference,
-    long CapacityMinutes,
-    long AvailableCapacityMinutes,
-    long CurrentLoadMinutes,
-    string Name,
-    int MachineCount,
-    string? DefaultShiftReference);
+public sealed record MockErpWorkCenter(
+    string WorkCenterRef,
+    string Name);
 
 public sealed record MockErpWorkingShift(
     string WorkCenterReference,

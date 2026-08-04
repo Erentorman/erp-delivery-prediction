@@ -17,7 +17,7 @@ public sealed class MockErpDataStore
     private readonly IReadOnlyList<MockErpStockLevel> _stockLevels;
     private readonly IReadOnlyList<MockErpOpenPurchaseOrder> _openPurchaseOrders;
     private readonly IReadOnlyList<MockErpWorkOrder> _workOrders;
-    private readonly IReadOnlyList<MockErpWorkCenterCapacity> _workCenters;
+    private readonly IReadOnlyList<MockErpWorkCenter> _workCenters;
     private readonly IReadOnlyList<MockErpWorkingShift> _shifts;
     private readonly IReadOnlyList<MockErpHoliday> _holidays;
     private readonly IReadOnlyList<MockErpPlannedDowntime> _plannedDowntimes;
@@ -62,9 +62,8 @@ public sealed class MockErpDataStore
         EnsureUnique(seed.Products.Select(product => product.Id), "product");
         EnsureUnique(seed.Boms.Select(bom => bom.ProductId), "BOM product");
         EnsureUnique(
-            seed.CapacityCalendar.WorkCenters.Select(workCenter => workCenter.WorkCenterReference),
+            seed.CapacityCalendar.WorkCenters.Select(workCenter => workCenter.WorkCenterRef),
             "work center");
-        EnsureValidMachineCounts(seed.CapacityCalendar.WorkCenters);
         EnsureValidWorkOrderOperations(seed.WorkOrders, seed.CapacityCalendar.WorkCenters);
 
         var orders = seed.Orders
@@ -155,7 +154,7 @@ public sealed class MockErpDataStore
         return new MockErpCapacityAndCalendar(
             rangeStart,
             rangeEnd,
-            Filter(_workCenters, item => references.Contains(item.WorkCenterReference)),
+            Filter(_workCenters, item => references.Contains(item.WorkCenterRef)),
             Filter(_shifts, item =>
                 references.Contains(item.WorkCenterReference) &&
                 item.End >= rangeStart && item.Start <= rangeEnd),
@@ -212,27 +211,15 @@ public sealed class MockErpDataStore
         }
     }
 
-    private static void EnsureValidMachineCounts(IEnumerable<MockErpWorkCenterCapacity> workCenters)
-    {
-        var invalid = workCenters.FirstOrDefault(workCenter => workCenter.MachineCount < 1);
-
-        if (invalid is not null)
-        {
-            throw new InvalidOperationException(
-                $"Work center '{invalid.WorkCenterReference}' has an invalid MachineCount " +
-                $"({invalid.MachineCount}); MachineCount must be at least 1.");
-        }
-    }
-
     // Each work order's Operations list is the routing-scope boundary (T-359): operation
     // reference/sequence uniqueness and predecessor references are validated per work
     // order, not globally, since a routing is represented as one work order's operations.
     private static void EnsureValidWorkOrderOperations(
         IEnumerable<MockErpWorkOrder> workOrders,
-        IEnumerable<MockErpWorkCenterCapacity> workCenters)
+        IEnumerable<MockErpWorkCenter> workCenters)
     {
         var knownWorkCenters = new HashSet<string>(
-            workCenters.Select(workCenter => workCenter.WorkCenterReference),
+            workCenters.Select(workCenter => workCenter.WorkCenterRef),
             StringComparer.Ordinal);
 
         foreach (var workOrder in workOrders)
@@ -329,7 +316,7 @@ public sealed class MockErpDataStore
         string Unit);
 
     private sealed record SeedCapacityCalendar(
-        List<MockErpWorkCenterCapacity> WorkCenters,
+        List<MockErpWorkCenter> WorkCenters,
         List<MockErpWorkingShift> Shifts,
         List<MockErpHoliday> Holidays,
         List<MockErpPlannedDowntime> PlannedDowntimes);

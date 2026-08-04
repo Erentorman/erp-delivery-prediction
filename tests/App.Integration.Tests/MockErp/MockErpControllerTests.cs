@@ -1,4 +1,5 @@
 using App.Application.Contracts.Erp;
+using System.Text.Json;
 using Microsoft.AspNetCore.Mvc.Routing;
 using Microsoft.AspNetCore.Mvc;
 using MockErp.Api.Controllers;
@@ -13,6 +14,26 @@ public sealed class MockErpControllerTests
         AppContext.BaseDirectory,
         "Data",
         "mock-erp-seed.json"));
+
+    [Fact]
+    public void WorkCenterModelAndJson_ContainOnlyTheMinimumContract()
+    {
+        Assert.Equal(
+            [nameof(MockErpWorkCenter.WorkCenterRef), nameof(MockErpWorkCenter.Name)],
+            typeof(MockErpWorkCenter).GetProperties().Select(property => property.Name));
+
+        var json = JsonSerializer.Serialize(
+            new MockErpWorkCenter("WC-ASSEMBLY-01", "Assembly Line 1"),
+            new JsonSerializerOptions(JsonSerializerDefaults.Web));
+        using var document = JsonDocument.Parse(json);
+        var propertyNames = document.RootElement
+            .EnumerateObject()
+            .Select(property => property.Name)
+            .ToArray();
+
+        Assert.Equal(["workCenterRef", "name"], propertyNames);
+        Assert.DoesNotContain("workCenterReference", propertyNames);
+    }
 
     [Fact]
     public void GetOrdersReturnsFullRuntimeSeedCollectionAndKnownFirstOrders()
@@ -156,7 +177,7 @@ public sealed class MockErpControllerTests
     [InlineData(typeof(MockErpStockLevel), typeof(StockLevelReadDto))]
     [InlineData(typeof(MockErpOpenPurchaseOrder), typeof(OpenPurchaseOrderReadDto))]
     [InlineData(typeof(MockErpWorkOrderOperation), typeof(WorkOrderOperationReadDto))]
-    [InlineData(typeof(MockErpWorkCenterCapacity), typeof(WorkCenterCapacityReadDto))]
+    [InlineData(typeof(MockErpWorkCenter), typeof(WorkCenterReadDto))]
     [InlineData(typeof(MockErpWorkingShift), typeof(WorkingShiftReadDto))]
     [InlineData(typeof(MockErpHoliday), typeof(HolidayReadDto))]
     [InlineData(typeof(MockErpPlannedDowntime), typeof(PlannedDowntimeReadDto))]

@@ -1,0 +1,20 @@
+{
+  "orders": [],
+  "products": [],
+  "boms": [],
+  "stockLevels": [],
+  "openPurchaseOrders": [],
+  "workOrders": [],
+  "capacityCalendar": {
+    "workCenters": [
+      {
+        "workCenterRef": "WC-ASSEMBLY-01",
+        "name": "Assembly Line 1"
+      }
+    ],
+    "shifts": [],
+    "holidays": [],
+    "plannedDowntimes": []
+  },
+  "shippingDurations": []
+}
