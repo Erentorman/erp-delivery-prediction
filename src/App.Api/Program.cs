@@ -2,6 +2,7 @@ using App.Api.ExceptionHandling;
 using App.Api.Security;
 using App.Application.IntegrationLogging;
 using App.Infrastructure.Security;
+using App.Infrastructure.Shipping;
 using App.Persistence;
 using App.Persistence.IntegrationLogging;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -25,6 +26,7 @@ builder.Services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connect
 builder.Services.AddScoped<IIntegrationLogWriter, IntegrationLogWriter>();
 
 builder.Services.AddInfrastructureSecurity(builder.Configuration);
+builder.Services.AddShippingLookup();
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer();
