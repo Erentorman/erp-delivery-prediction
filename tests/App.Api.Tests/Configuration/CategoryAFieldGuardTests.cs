@@ -31,8 +31,8 @@ public class CategoryAFieldGuardTests
             ConfigVersion = "2.0",
             WorkingCalendar = new WorkingCalendarOptions
             {
-                StartTime = "08:00",
-                EndTime = "17:00",
+                StartTime = TimeSpan.Parse("08:00"),
+                EndTime = TimeSpan.Parse("17:00"),
                 BreakMinutes = 60,
                 NetMinutesPerDay = 480
             },
@@ -87,8 +87,8 @@ public class CategoryAFieldGuardTests
             ConfigVersion = "2.0",
             WorkingCalendar = new WorkingCalendarOptions
             {
-                StartTime = "08:00",
-                EndTime = "17:00",
+                StartTime = TimeSpan.Parse("08:00"),
+                EndTime = TimeSpan.Parse("17:00"),
                 BreakMinutes = 60,
                 NetMinutesPerDay = 500 // Incorrect, should be 480
             }

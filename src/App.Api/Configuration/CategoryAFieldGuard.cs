@@ -32,18 +32,12 @@ public static class CategoryAFieldGuard
         }
 
         // 3. Check netMinutesPerDay consistency
-        if (options.WorkingCalendar != null && 
-            !string.IsNullOrWhiteSpace(options.WorkingCalendar.StartTime) && 
-            !string.IsNullOrWhiteSpace(options.WorkingCalendar.EndTime))
+        if (options.WorkingCalendar != null)
         {
-            if (TimeSpan.TryParse(options.WorkingCalendar.StartTime, out var startTime) &&
-                TimeSpan.TryParse(options.WorkingCalendar.EndTime, out var endTime))
+            var calculatedNetMinutes = (int)(options.WorkingCalendar.EndTime - options.WorkingCalendar.StartTime).TotalMinutes - options.WorkingCalendar.BreakMinutes;
+            if (calculatedNetMinutes != options.WorkingCalendar.NetMinutesPerDay)
             {
-                var calculatedNetMinutes = (int)(endTime - startTime).TotalMinutes - options.WorkingCalendar.BreakMinutes;
-                if (calculatedNetMinutes != options.WorkingCalendar.NetMinutesPerDay)
-                {
-                    throw new InvalidOperationException($"netMinutesPerDay is inconsistent. Expected {calculatedNetMinutes}, got {options.WorkingCalendar.NetMinutesPerDay}.");
-                }
+                throw new InvalidOperationException($"netMinutesPerDay is inconsistent. Expected {calculatedNetMinutes}, got {options.WorkingCalendar.NetMinutesPerDay}.");
             }
         }
 
