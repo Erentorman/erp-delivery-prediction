@@ -8,11 +8,12 @@ public class ExamplePredictionStepTests
     public void Execute_EnrichesTheSamePredictionContextInstance()
     {
         var context = new PredictionContext(
-            new OrderInput(),
-            new MaterialSnapshot(),
+            new OrderInput("ORD-1", "PROD-1", 10, DateTimeOffset.UtcNow),
+            new MaterialSnapshot(Array.Empty<MaterialProduct>(), Array.Empty<MaterialBomItem>(), Array.Empty<MaterialStock>(), Array.Empty<MaterialPurchaseOrder>()),
+            new RoutingSnapshot(Array.Empty<RoutingOperation>()),
             new CapacitySnapshot(),
             new CalendarSnapshot(),
-            Array.Empty<Operation>());
+            new ShippingSnapshot());
         var contextReference = context;
         var operation = new Operation();
         IPredictionStep step = new ExamplePredictionStep(operation);
@@ -28,11 +29,12 @@ public class ExamplePredictionStepTests
     public void Execute_CalledTwice_AccumulatesEnrichmentsOnSameInstance()
     {
         var context = new PredictionContext(
-            new OrderInput(),
-            new MaterialSnapshot(),
+            new OrderInput("ORD-1", "PROD-1", 10, DateTimeOffset.UtcNow),
+            new MaterialSnapshot(Array.Empty<MaterialProduct>(), Array.Empty<MaterialBomItem>(), Array.Empty<MaterialStock>(), Array.Empty<MaterialPurchaseOrder>()),
+            new RoutingSnapshot(Array.Empty<RoutingOperation>()),
             new CapacitySnapshot(),
             new CalendarSnapshot(),
-            Array.Empty<Operation>());
+            new ShippingSnapshot());
         var firstOperation = new Operation();
         var secondOperation = new Operation();
         IPredictionStep firstStep = new ExamplePredictionStep(firstOperation);

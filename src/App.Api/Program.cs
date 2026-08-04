@@ -9,6 +9,7 @@ using App.Persistence.IntegrationLogging;
 using App.Api.Configuration;
 using App.Application.Contracts.Configuration;
 using App.Application.Erp;
+using App.Application.Prediction;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -34,6 +35,7 @@ builder.Services.AddInfrastructureSecurity(builder.Configuration);
 builder.Services.AddShippingLookup();
 builder.Services.AddSystemClock();
 builder.Services.AddErpBatchReader();
+builder.Services.AddPredictionServices();
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer();
