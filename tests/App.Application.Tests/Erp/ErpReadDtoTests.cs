@@ -46,7 +46,7 @@ public sealed class ErpReadDtoTests
     {
         var rangeStart = new DateTimeOffset(2026, 8, 3, 0, 0, 0, TimeSpan.Zero);
         var rangeEnd = rangeStart.AddDays(7);
-        var capacity = new WorkCenterReadModel("WC-1", "Assembly", 2, "SHIFT-1");
+        var capacity = new WorkCenterCapacityReadDto("WC-1", 2_400, 1_800, 600);
         var shift = new WorkingShiftReadDto(
             "WC-1",
             rangeStart.AddHours(8),

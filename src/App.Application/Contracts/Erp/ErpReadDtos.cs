@@ -59,16 +59,16 @@ public sealed record WorkOrderOperationReadDto(
 public sealed record CapacityAndCalendarReadDto(
     DateTimeOffset RangeStart,
     DateTimeOffset RangeEnd,
-    IReadOnlyList<WorkCenterReadModel> WorkCenters,
+    IReadOnlyList<WorkCenterCapacityReadDto> WorkCenters,
     IReadOnlyList<WorkingShiftReadDto> Shifts,
     IReadOnlyList<HolidayReadDto> Holidays,
     IReadOnlyList<PlannedDowntimeReadDto> PlannedDowntimes);
 
-public sealed record WorkCenterReadModel(
-    string WorkCenterRef,
-    string Name,
-    int MachineCount,
-    string? DefaultShiftRef);
+public sealed record WorkCenterCapacityReadDto(
+    string WorkCenterReference,
+    long CapacityMinutes,
+    long AvailableCapacityMinutes,
+    long CurrentLoadMinutes);
 
 public sealed record WorkingShiftReadDto(
     string WorkCenterReference,

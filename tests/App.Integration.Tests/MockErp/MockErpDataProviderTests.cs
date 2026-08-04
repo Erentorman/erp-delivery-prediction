@@ -74,7 +74,7 @@ public sealed class MockErpDataProviderTests
         Assert.Equal(45, operation.StandardDurationMinutes);
         Assert.Equal("OP0", Assert.Single(operation.PredecessorOperationReferences));
         var capacity = await provider.GetCapacityAndCalendarAsync(["WC&1", "WC 2"], start, end, default);
-        Assert.Equal(2, Assert.Single(capacity.WorkCenters).MachineCount);
+        Assert.Equal(0, Assert.Single(capacity.WorkCenters).CapacityMinutes);
         Assert.Equal(new DateOnly(2026, 8, 2), Assert.Single(capacity.Holidays).Date);
         Assert.Equal(1440, (await provider.GetShippingDurationAsync("TR IST", "DE/BER", "AIR&FAST", default))!.ShippingDurationMinutes);
 

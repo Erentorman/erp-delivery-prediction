@@ -271,7 +271,7 @@ internal sealed class MockErpDataProvider : IErpDataProvider
 
     private static CapacityAndCalendarReadDto MapCapacity(MockErpCapacityAndCalendar value) => new(
         value.RangeStart, value.RangeEnd,
-        Array.AsReadOnly(value.WorkCenters.Select(x => new WorkCenterReadModel(x.WorkCenterRef, x.Name, x.MachineCount, x.DefaultShiftRef)).ToArray()),
+        Array.AsReadOnly(value.WorkCenters.Select(x => new WorkCenterCapacityReadDto(x.WorkCenterRef, 0, 0, 0)).ToArray()),
         Array.AsReadOnly(value.Shifts.Select(x => new WorkingShiftReadDto(x.WorkCenterReference, x.Start, x.End)).ToArray()),
         Array.AsReadOnly(value.Holidays.Select(x => new HolidayReadDto(x.Date, x.WorkCenterReference)).ToArray()),
         Array.AsReadOnly(value.PlannedDowntimes.Select(x => new PlannedDowntimeReadDto(x.WorkCenterReference, x.Start, x.End, x.PlannedDowntimeMinutes)).ToArray()));

@@ -213,4 +213,24 @@ public sealed class MockErpDataStoreTests
         
         File.Delete(invalidSeedPath);
     }
+
+    [Fact]
+    public void WorkCentersArrayCanBeEmptyAndShouldNotThrow()
+    {
+        var validSeedPath = Path.Combine(AppContext.BaseDirectory, "valid-wc-empty.json");
+        File.WriteAllText(validSeedPath, """
+            {
+                "orders": [], "products": [], "boms": [], "stockLevels": [], "openPurchaseOrders": [], "workOrders": [], "shippingDurations": [],
+                "capacityCalendar": {
+                    "workCenters": [],
+                    "shifts": [], "holidays": [], "plannedDowntimes": []
+                }
+            }
+            """);
+
+        var store = new MockErpDataStore(validSeedPath);
+        Assert.NotNull(store);
+        
+        File.Delete(validSeedPath);
+    }
 }
