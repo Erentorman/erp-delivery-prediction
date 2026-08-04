@@ -1,6 +1,7 @@
 using App.Api.ExceptionHandling;
 using App.Api.Security;
 using App.Application.IntegrationLogging;
+using App.Infrastructure.Clock;
 using App.Infrastructure.Security;
 using App.Infrastructure.Shipping;
 using App.Persistence;
@@ -30,6 +31,7 @@ builder.Services.AddScoped<IIntegrationLogWriter, IntegrationLogWriter>();
 
 builder.Services.AddInfrastructureSecurity(builder.Configuration);
 builder.Services.AddShippingLookup();
+builder.Services.AddSystemClock();
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer();
