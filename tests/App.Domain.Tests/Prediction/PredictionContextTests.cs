@@ -7,91 +7,40 @@ public class PredictionContextTests
     [Fact]
     public void Constructor_WithValidArguments_ExposesProvidedSnapshots()
     {
-        var orderInput = new OrderInput();
-        var materialSnapshot = new MaterialSnapshot();
+        var orderInput = new OrderInput("ORD-1", "PROD-1", 10, DateTimeOffset.UtcNow);
+        var materialSnapshot = new MaterialSnapshot(Array.Empty<MaterialProduct>(), Array.Empty<MaterialBomItem>(), Array.Empty<MaterialStock>(), Array.Empty<MaterialPurchaseOrder>());
+        var routingSnapshot = new RoutingSnapshot(Array.Empty<RoutingOperation>());
         var capacitySnapshot = new CapacitySnapshot();
         var calendarSnapshot = new CalendarSnapshot();
-        var operation = new Operation();
+        var shippingSnapshot = new ShippingSnapshot();
 
         var context = new PredictionContext(
             orderInput,
             materialSnapshot,
+            routingSnapshot,
             capacitySnapshot,
             calendarSnapshot,
-            new[] { operation });
+            shippingSnapshot);
 
         Assert.Same(orderInput, context.OrderInput);
         Assert.Same(materialSnapshot, context.MaterialSnapshot);
+        Assert.Same(routingSnapshot, context.RoutingSnapshot);
         Assert.Same(capacitySnapshot, context.CapacitySnapshot);
         Assert.Same(calendarSnapshot, context.CalendarSnapshot);
-        Assert.Single(context.Operations);
-        Assert.Same(operation, context.Operations[0]);
-    }
-
-    [Fact]
-    public void Constructor_WithNullOrderInput_ThrowsArgumentNullException()
-    {
-        Assert.Throws<ArgumentNullException>(() => new PredictionContext(
-            null!,
-            new MaterialSnapshot(),
-            new CapacitySnapshot(),
-            new CalendarSnapshot(),
-            Array.Empty<Operation>()));
-    }
-
-    [Fact]
-    public void Constructor_WithNullMaterialSnapshot_ThrowsArgumentNullException()
-    {
-        Assert.Throws<ArgumentNullException>(() => new PredictionContext(
-            new OrderInput(),
-            null!,
-            new CapacitySnapshot(),
-            new CalendarSnapshot(),
-            Array.Empty<Operation>()));
-    }
-
-    [Fact]
-    public void Constructor_WithNullCapacitySnapshot_ThrowsArgumentNullException()
-    {
-        Assert.Throws<ArgumentNullException>(() => new PredictionContext(
-            new OrderInput(),
-            new MaterialSnapshot(),
-            null!,
-            new CalendarSnapshot(),
-            Array.Empty<Operation>()));
-    }
-
-    [Fact]
-    public void Constructor_WithNullCalendarSnapshot_ThrowsArgumentNullException()
-    {
-        Assert.Throws<ArgumentNullException>(() => new PredictionContext(
-            new OrderInput(),
-            new MaterialSnapshot(),
-            new CapacitySnapshot(),
-            null!,
-            Array.Empty<Operation>()));
-    }
-
-    [Fact]
-    public void Constructor_WithNullOperations_ThrowsArgumentNullException()
-    {
-        Assert.Throws<ArgumentNullException>(() => new PredictionContext(
-            new OrderInput(),
-            new MaterialSnapshot(),
-            new CapacitySnapshot(),
-            new CalendarSnapshot(),
-            null!));
+        Assert.Same(shippingSnapshot, context.ShippingSnapshot);
+        Assert.Empty(context.Operations);
     }
 
     [Fact]
     public void AddOperation_WithValidOperation_AppendsToOperations()
     {
         var context = new PredictionContext(
-            new OrderInput(),
-            new MaterialSnapshot(),
+            new OrderInput("ORD-1", "PROD-1", 10, DateTimeOffset.UtcNow),
+            new MaterialSnapshot(Array.Empty<MaterialProduct>(), Array.Empty<MaterialBomItem>(), Array.Empty<MaterialStock>(), Array.Empty<MaterialPurchaseOrder>()),
+            new RoutingSnapshot(Array.Empty<RoutingOperation>()),
             new CapacitySnapshot(),
             new CalendarSnapshot(),
-            Array.Empty<Operation>());
+            new ShippingSnapshot());
 
         var operation = new Operation();
         context.AddOperation(operation);
@@ -104,11 +53,12 @@ public class PredictionContextTests
     public void AddOperation_WithNullOperation_ThrowsArgumentNullException()
     {
         var context = new PredictionContext(
-            new OrderInput(),
-            new MaterialSnapshot(),
+            new OrderInput("ORD-1", "PROD-1", 10, DateTimeOffset.UtcNow),
+            new MaterialSnapshot(Array.Empty<MaterialProduct>(), Array.Empty<MaterialBomItem>(), Array.Empty<MaterialStock>(), Array.Empty<MaterialPurchaseOrder>()),
+            new RoutingSnapshot(Array.Empty<RoutingOperation>()),
             new CapacitySnapshot(),
             new CalendarSnapshot(),
-            Array.Empty<Operation>());
+            new ShippingSnapshot());
 
         Assert.Throws<ArgumentNullException>(() => context.AddOperation(null!));
     }
