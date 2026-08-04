@@ -268,7 +268,8 @@ internal sealed class MockErpDataProvider : IErpDataProvider
         Array.AsReadOnly(value.Operations.Select(operation => new WorkOrderOperationReadDto(
             operation.OperationReference, operation.OperationSequence, operation.WorkCenterReference,
             operation.StandardDurationMinutes, operation.RemainingDurationMinutes, operation.Status,
-            Array.AsReadOnly(operation.PredecessorOperationReferences.ToArray()))).ToArray()));
+            Array.AsReadOnly(operation.PredecessorOperationReferences.ToArray()))).ToArray()),
+        value.RoutingReference);
 
     private static CapacityAndCalendarReadDto MapCapacity(MockErpCapacityAndCalendar value) => new(
         value.RangeStart, value.RangeEnd,

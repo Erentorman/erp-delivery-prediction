@@ -45,7 +45,8 @@ public sealed record WorkOrderReadDto(
     string? OrderReference,
     string ProductReference,
     string Status,
-    IReadOnlyList<WorkOrderOperationReadDto> Operations);
+    IReadOnlyList<WorkOrderOperationReadDto> Operations,
+    string? RoutingReference);
 
 public sealed record WorkOrderOperationReadDto(
     string OperationReference,

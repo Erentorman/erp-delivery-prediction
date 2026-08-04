@@ -65,6 +65,7 @@ public sealed class MockErpDataStore
             seed.CapacityCalendar.WorkCenters.Select(workCenter => workCenter.WorkCenterReference),
             "work center");
         EnsureValidMachineCounts(seed.CapacityCalendar.WorkCenters);
+        EnsureValidWorkOrderOperations(seed.WorkOrders, seed.CapacityCalendar.WorkCenters);
 
         var orders = seed.Orders
             .Select(order => new MockErpOrder(
@@ -220,6 +221,79 @@ public sealed class MockErpDataStore
             throw new InvalidOperationException(
                 $"Work center '{invalid.WorkCenterReference}' has an invalid MachineCount " +
                 $"({invalid.MachineCount}); MachineCount must be at least 1.");
+        }
+    }
+
+    // Each work order's Operations list is the routing-scope boundary (T-359): operation
+    // reference/sequence uniqueness and predecessor references are validated per work
+    // order, not globally, since a routing is represented as one work order's operations.
+    private static void EnsureValidWorkOrderOperations(
+        IEnumerable<MockErpWorkOrder> workOrders,
+        IEnumerable<MockErpWorkCenterCapacity> workCenters)
+    {
+        var knownWorkCenters = new HashSet<string>(
+            workCenters.Select(workCenter => workCenter.WorkCenterReference),
+            StringComparer.Ordinal);
+
+        foreach (var workOrder in workOrders)
+        {
+            var operations = workOrder.Operations;
+
+            EnsureUnique(
+                operations.Select(operation => operation.OperationReference),
+                $"operation reference in work order '{workOrder.WorkOrderReference}'");
+            EnsureUnique(
+                operations.Select(operation => operation.OperationSequence.ToString()),
+                $"operation sequence in work order '{workOrder.WorkOrderReference}'");
+
+            var knownOperationReferences = new HashSet<string>(
+                operations.Select(operation => operation.OperationReference),
+                StringComparer.Ordinal);
+
+            foreach (var operation in operations)
+            {
+                if (operation.StandardDurationMinutes <= 0)
+                {
+                    throw new InvalidOperationException(
+                        $"Work order '{workOrder.WorkOrderReference}' operation " +
+                        $"'{operation.OperationReference}' has an invalid StandardDurationMinutes " +
+                        $"({operation.StandardDurationMinutes}); it must be positive.");
+                }
+
+                if (operation.OperationSequence <= 0)
+                {
+                    throw new InvalidOperationException(
+                        $"Work order '{workOrder.WorkOrderReference}' operation " +
+                        $"'{operation.OperationReference}' has an invalid OperationSequence " +
+                        $"({operation.OperationSequence}); it must be positive.");
+                }
+
+                if (!knownWorkCenters.Contains(operation.WorkCenterReference))
+                {
+                    throw new InvalidOperationException(
+                        $"Work order '{workOrder.WorkOrderReference}' operation " +
+                        $"'{operation.OperationReference}' references unknown work center " +
+                        $"'{operation.WorkCenterReference}'.");
+                }
+
+                foreach (var predecessor in operation.PredecessorOperationReferences)
+                {
+                    if (string.Equals(predecessor, operation.OperationReference, StringComparison.Ordinal))
+                    {
+                        throw new InvalidOperationException(
+                            $"Work order '{workOrder.WorkOrderReference}' operation " +
+                            $"'{operation.OperationReference}' cannot list itself as a predecessor.");
+                    }
+
+                    if (!knownOperationReferences.Contains(predecessor))
+                    {
+                        throw new InvalidOperationException(
+                            $"Work order '{workOrder.WorkOrderReference}' operation " +
+                            $"'{operation.OperationReference}' references predecessor '{predecessor}', " +
+                            "which is not part of the same work order.");
+                    }
+                }
+            }
         }
     }
 
