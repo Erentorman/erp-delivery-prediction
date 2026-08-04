@@ -10,7 +10,7 @@ Bu rapor yalnızca `mvp-assumptions.v1.json` içindeki değerlerin gerekçesini 
 | `defaultCapacityMinutesPerWorkCenterPerDay` | 480 | Tek vardiya × tek kaynak varsayımı | SAD'de karşılığı yok | Vardiya başına birden fazla paralel kaynak varsayımı (ör. 2x480) | Kapasite darboğazı hesaplarını doğrudan etkiler — **yanlış seçilirse CPM sonuçları gerçekçi olmayan gecikmeler/erken tarihler üretebilir** |
 | `holidays.fixedDates2026` | Yalnızca sabit tarihli 7 resmi tatil | Dini bayramlar (değişken tarihli) bu ortamda doğrulanamadı, uydurulmadı | — | Gerçek 2026 dini bayram tarihleri eklenmeli (ERP/HR'dan teyit) | Eksik tatil = CPM'in gerçek çalışılamayan günleri çalışılabilir sayması riski |
 | `defaultShippingDurationMinutes` | 1875 | Excel'deki 1000 gerçekleşmiş "Teslimat Süresi" kolonunun **medyanı** — bir lookup değeri değil, tek genel sabit | Gerçek route lookup'ı yok | Ürün/bölge bazlı farklı sabitler | Tüm siparişlere aynı sevkiyat süresi uygulanır — gerçekçi değişkenlik kaybolur |
-| `defaultSupplierLeadTimeMinutes` | 2926 | Yalnızca `StockOrderRequired=Yes` olan 60 siparişin gerçekleşmiş tedarik süresi medyanı | — | Malzeme bazında farklı tedarik süreleri (gerçek tedarikçi verisiyle) | Stok yetersizse tüm ürünlere aynı gecikme varsayılır |
+| `procurement.defaultLeadTimeWorkingMinutes` | 960 | 2 iş günü kararı (2 * 480 dakika) | — | Malzeme bazında farklı tedarik süreleri (gerçek tedarikçi verisiyle) | Stok yetersizse tüm ürünlere aynı gecikme varsayılır |
 | `defaultProductUnit` | "Adet" | Mobilya kalemleri adetle sayılır (Excel'de doğrudan yok ama iş bilgisiyle neredeyse kesin) | — | Ürün bazında override | Düşük risk |
 
 ## Karar Gerektiren (Decision Required) — Faz 4
