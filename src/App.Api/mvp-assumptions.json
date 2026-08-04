@@ -1,0 +1,13 @@
+{
+  "mvpAssumptions": {
+    "workingCalendar": {
+      "minutesPerDay": 480
+    },
+    "procurement": {
+      "fallbackDurationMinutes": 960
+    },
+    "shipping": {
+      "fallbackDurationMinutes": null
+    }
+  }
+}

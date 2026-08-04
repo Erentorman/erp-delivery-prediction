@@ -25,26 +25,9 @@ public static class CategoryAFieldGuard
         using var doc = JsonDocument.Parse(jsonContent);
         CheckElement(doc.RootElement);
 
-        // 2. Check config version
-        if (options.ConfigVersion != "2.0")
+        if (options.Shipping.FallbackDurationMinutes == null)
         {
-            throw new InvalidOperationException($"Unexpected configVersion. Expected '2.0', got '{options.ConfigVersion}'.");
-        }
-
-        // 3. Check netMinutesPerDay consistency
-        if (options.WorkingCalendar != null)
-        {
-            var calculatedNetMinutes = (int)(options.WorkingCalendar.EndTime - options.WorkingCalendar.StartTime).TotalMinutes - options.WorkingCalendar.BreakMinutes;
-            if (calculatedNetMinutes != options.WorkingCalendar.NetMinutesPerDay)
-            {
-                throw new InvalidOperationException($"netMinutesPerDay is inconsistent. Expected {calculatedNetMinutes}, got {options.WorkingCalendar.NetMinutesPerDay}.");
-            }
-        }
-
-        // 4. Check missing shipping unknownRouteFallbackMinutes
-        if (options.Shipping?.UnknownRouteFallbackMinutes == null)
-        {
-            logger.LogWarning("shipping.unknownRouteFallbackMinutes is null. Fallback operations will not be available for unknown routes.");
+            logger.LogWarning("shipping.fallbackDurationMinutes is null. Fallback operations will not be available for unknown routes.");
         }
     }
 
