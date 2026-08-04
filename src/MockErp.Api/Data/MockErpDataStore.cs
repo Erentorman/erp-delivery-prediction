@@ -61,6 +61,10 @@ public sealed class MockErpDataStore
         EnsureUnique(seed.Orders.Select(order => order.Id), "order");
         EnsureUnique(seed.Products.Select(product => product.Id), "product");
         EnsureUnique(seed.Boms.Select(bom => bom.ProductId), "BOM product");
+        EnsureUnique(
+            seed.CapacityCalendar.WorkCenters.Select(workCenter => workCenter.WorkCenterReference),
+            "work center");
+        EnsureValidMachineCounts(seed.CapacityCalendar.WorkCenters);
 
         var orders = seed.Orders
             .Select(order => new MockErpOrder(
@@ -204,6 +208,18 @@ public sealed class MockErpDataStore
         {
             throw new InvalidOperationException(
                 $"Mock ERP seed contains duplicate {identifierType} identifier '{duplicate.Key}'.");
+        }
+    }
+
+    private static void EnsureValidMachineCounts(IEnumerable<MockErpWorkCenterCapacity> workCenters)
+    {
+        var invalid = workCenters.FirstOrDefault(workCenter => workCenter.MachineCount < 1);
+
+        if (invalid is not null)
+        {
+            throw new InvalidOperationException(
+                $"Work center '{invalid.WorkCenterReference}' has an invalid MachineCount " +
+                $"({invalid.MachineCount}); MachineCount must be at least 1.");
         }
     }
 

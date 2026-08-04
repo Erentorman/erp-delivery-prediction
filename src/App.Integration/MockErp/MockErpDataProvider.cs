@@ -6,6 +6,7 @@ using System.Text.Json;
 using App.Application.Abstractions.Erp;
 using App.Application.Contracts.Erp;
 using App.Application.IntegrationLogging;
+using App.Integration.Models;
 
 namespace App.Integration.MockErp;
 
@@ -271,10 +272,29 @@ internal sealed class MockErpDataProvider : IErpDataProvider
 
     private static CapacityAndCalendarReadDto MapCapacity(MockErpCapacityAndCalendar value) => new(
         value.RangeStart, value.RangeEnd,
-        Array.AsReadOnly(value.WorkCenters.Select(x => new WorkCenterCapacityReadDto(x.WorkCenterReference, x.CapacityMinutes, x.AvailableCapacityMinutes, x.CurrentLoadMinutes)).ToArray()),
+        Array.AsReadOnly(value.WorkCenters.Select(MapWorkCenter).ToArray()),
         Array.AsReadOnly(value.Shifts.Select(x => new WorkingShiftReadDto(x.WorkCenterReference, x.Start, x.End)).ToArray()),
         Array.AsReadOnly(value.Holidays.Select(x => new HolidayReadDto(x.Date, x.WorkCenterReference)).ToArray()),
         Array.AsReadOnly(value.PlannedDowntimes.Select(x => new PlannedDowntimeReadDto(x.WorkCenterReference, x.Start, x.End, x.PlannedDowntimeMinutes)).ToArray()));
+
+    private static WorkCenterCapacityReadDto MapWorkCenter(MockErpWorkCenterCapacity source)
+    {
+        var readModel = MapWorkCenterReadModel(source);
+        return new WorkCenterCapacityReadDto(
+            source.WorkCenterReference,
+            source.CapacityMinutes,
+            source.AvailableCapacityMinutes,
+            source.CurrentLoadMinutes,
+            readModel.Name,
+            readModel.MachineCount,
+            readModel.DefaultShiftReference);
+    }
+
+    // Isolated master-data projection (SAD/T-358): kept as its own step, not inlined into
+    // MapWorkCenter, so Integration-side master data can be read/tested independently of
+    // the Application-facing capacity DTO shape.
+    internal static WorkCenterReadModel MapWorkCenterReadModel(MockErpWorkCenterCapacity source) =>
+        new(source.WorkCenterReference, source.Name, source.MachineCount, source.DefaultShiftReference);
 }
 
 internal sealed record RetryPolicy(TimeSpan AttemptTimeout, int MaximumAttempts, IReadOnlyList<TimeSpan> RetryDelays);
