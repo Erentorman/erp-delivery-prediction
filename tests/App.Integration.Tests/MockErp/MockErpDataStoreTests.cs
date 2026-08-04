@@ -128,7 +128,8 @@ public sealed class MockErpDataStoreTests
         Assert.Equal(rangeStart, result.RangeStart);
         Assert.Equal(rangeEnd, result.RangeEnd);
         Assert.Single(result.WorkCenters);
-        Assert.Equal(960, result.WorkCenters[0].CapacityMinutes);
+        Assert.Equal("WC-ASSEMBLY-01", result.WorkCenters[0].WorkCenterRef);
+        Assert.Equal(2, result.WorkCenters[0].MachineCount);
         Assert.Single(result.Shifts);
         Assert.Equal(TimeSpan.FromHours(3), result.Shifts[0].Start.Offset);
         Assert.Single(result.Holidays);
@@ -168,5 +169,48 @@ public sealed class MockErpDataStoreTests
         Assert.Throws<NotSupportedException>(
             () => ((IList)workOrder.Operations[1].PredecessorOperationReferences).Clear());
         Assert.Single(store.GetStockLevels(["PROD-BIKE-01"]));
+    }
+
+    [Fact]
+    public void WorkCenterMachineCountMustBeAtLeastOne()
+    {
+        var invalidSeedPath = Path.Combine(AppContext.BaseDirectory, "invalid-wc-machinecount.json");
+        File.WriteAllText(invalidSeedPath, """
+            {
+                "orders": [], "products": [], "boms": [], "stockLevels": [], "openPurchaseOrders": [], "workOrders": [], "shippingDurations": [],
+                "capacityCalendar": {
+                    "workCenters": [ { "workCenterRef": "WC-1", "name": "A", "machineCount": 0 } ],
+                    "shifts": [], "holidays": [], "plannedDowntimes": []
+                }
+            }
+            """);
+
+        var exception = Assert.Throws<InvalidOperationException>(() => new MockErpDataStore(invalidSeedPath));
+        Assert.Contains("machine count of 1 or more", exception.Message);
+        
+        File.Delete(invalidSeedPath);
+    }
+
+    [Fact]
+    public void WorkCenterReferencesMustBeUnique()
+    {
+        var invalidSeedPath = Path.Combine(AppContext.BaseDirectory, "invalid-wc-duplicate.json");
+        File.WriteAllText(invalidSeedPath, """
+            {
+                "orders": [], "products": [], "boms": [], "stockLevels": [], "openPurchaseOrders": [], "workOrders": [], "shippingDurations": [],
+                "capacityCalendar": {
+                    "workCenters": [ 
+                        { "workCenterRef": "WC-1", "name": "A", "machineCount": 1 },
+                        { "workCenterRef": "WC-1", "name": "B", "machineCount": 2 } 
+                    ],
+                    "shifts": [], "holidays": [], "plannedDowntimes": []
+                }
+            }
+            """);
+
+        var exception = Assert.Throws<InvalidOperationException>(() => new MockErpDataStore(invalidSeedPath));
+        Assert.Contains("duplicate work center", exception.Message);
+        
+        File.Delete(invalidSeedPath);
     }
 }

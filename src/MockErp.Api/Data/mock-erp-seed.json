@@ -150,16 +150,16 @@
   "capacityCalendar": {
     "workCenters": [
       {
-        "workCenterReference": "WC-ASSEMBLY-01",
-        "capacityMinutes": 960,
-        "availableCapacityMinutes": 720,
-        "currentLoadMinutes": 240
+        "workCenterRef": "WC-ASSEMBLY-01",
+        "name": "Assembly Line 1",
+        "machineCount": 2,
+        "defaultShiftRef": "SHIFT-01"
       },
       {
-        "workCenterReference": "WC-QUALITY-01",
-        "capacityMinutes": 480,
-        "availableCapacityMinutes": 360,
-        "currentLoadMinutes": 120
+        "workCenterRef": "WC-QUALITY-01",
+        "name": "Quality Control 1",
+        "machineCount": 1,
+        "defaultShiftRef": null
       }
     ],
     "shifts": [

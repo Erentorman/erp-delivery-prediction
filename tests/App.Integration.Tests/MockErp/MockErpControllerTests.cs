@@ -150,7 +150,7 @@ public sealed class MockErpControllerTests
     [InlineData(typeof(MockErpStockLevel), typeof(StockLevelReadDto))]
     [InlineData(typeof(MockErpOpenPurchaseOrder), typeof(OpenPurchaseOrderReadDto))]
     [InlineData(typeof(MockErpWorkOrderOperation), typeof(WorkOrderOperationReadDto))]
-    [InlineData(typeof(MockErpWorkCenterCapacity), typeof(WorkCenterCapacityReadDto))]
+    [InlineData(typeof(MockErpWorkCenter), typeof(WorkCenterReadModel))]
     [InlineData(typeof(MockErpWorkingShift), typeof(WorkingShiftReadDto))]
     [InlineData(typeof(MockErpHoliday), typeof(HolidayReadDto))]
     [InlineData(typeof(MockErpPlannedDowntime), typeof(PlannedDowntimeReadDto))]

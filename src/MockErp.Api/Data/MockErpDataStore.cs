@@ -17,7 +17,7 @@ public sealed class MockErpDataStore
     private readonly IReadOnlyList<MockErpStockLevel> _stockLevels;
     private readonly IReadOnlyList<MockErpOpenPurchaseOrder> _openPurchaseOrders;
     private readonly IReadOnlyList<MockErpWorkOrder> _workOrders;
-    private readonly IReadOnlyList<MockErpWorkCenterCapacity> _workCenters;
+    private readonly IReadOnlyList<MockErpWorkCenter> _workCenters;
     private readonly IReadOnlyList<MockErpWorkingShift> _shifts;
     private readonly IReadOnlyList<MockErpHoliday> _holidays;
     private readonly IReadOnlyList<MockErpPlannedDowntime> _plannedDowntimes;
@@ -101,6 +101,12 @@ public sealed class MockErpDataStore
                     .ToArray())
             })
             .ToArray());
+        if (seed.CapacityCalendar.WorkCenters.Any(wc => wc.MachineCount < 1))
+        {
+            throw new InvalidOperationException("Mock ERP capacity calendar work center must have a machine count of 1 or more.");
+        }
+        EnsureUnique(seed.CapacityCalendar.WorkCenters.Select(wc => wc.WorkCenterRef), "work center");
+
         _workCenters = ReadOnly(seed.CapacityCalendar.WorkCenters);
         _shifts = ReadOnly(seed.CapacityCalendar.Shifts);
         _holidays = ReadOnly(seed.CapacityCalendar.Holidays);
@@ -150,7 +156,7 @@ public sealed class MockErpDataStore
         return new MockErpCapacityAndCalendar(
             rangeStart,
             rangeEnd,
-            Filter(_workCenters, item => references.Contains(item.WorkCenterReference)),
+            Filter(_workCenters, item => references.Contains(item.WorkCenterRef)),
             Filter(_shifts, item =>
                 references.Contains(item.WorkCenterReference) &&
                 item.End >= rangeStart && item.Start <= rangeEnd),
@@ -239,7 +245,7 @@ public sealed class MockErpDataStore
         string Unit);
 
     private sealed record SeedCapacityCalendar(
-        List<MockErpWorkCenterCapacity> WorkCenters,
+        List<MockErpWorkCenter> WorkCenters,
         List<MockErpWorkingShift> Shifts,
         List<MockErpHoliday> Holidays,
         List<MockErpPlannedDowntime> PlannedDowntimes);
