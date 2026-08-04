@@ -20,5 +20,10 @@ internal sealed class FixedClock : IClock
         UtcNow = utcNow;
     }
 
-    public DateTimeOffset UtcNow { get; }
+    public DateTimeOffset UtcNow { get; private set; }
+
+    public void Advance(TimeSpan amount)
+    {
+        UtcNow = UtcNow.Add(amount);
+    }
 }

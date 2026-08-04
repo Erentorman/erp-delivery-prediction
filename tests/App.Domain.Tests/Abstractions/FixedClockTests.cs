@@ -43,4 +43,16 @@ public class FixedClockTests
 
         Assert.Equal(instant, clock.UtcNow);
     }
+
+    [Fact]
+    public void Advance_IncreasesUtcNowByGivenAmount()
+    {
+        var instant = new DateTimeOffset(2026, 7, 1, 8, 0, 0, TimeSpan.Zero);
+        var clock = new FixedClock(instant);
+
+        clock.Advance(TimeSpan.FromMinutes(15));
+
+        var expected = new DateTimeOffset(2026, 7, 1, 8, 15, 0, TimeSpan.Zero);
+        Assert.Equal(expected, clock.UtcNow);
+    }
 }
