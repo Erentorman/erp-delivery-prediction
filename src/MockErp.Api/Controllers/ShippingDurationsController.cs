@@ -10,9 +10,9 @@ namespace MockErp.Api.Controllers;
 public sealed class ShippingDurationsController(MockErpDataStore dataStore) : ControllerBase
 {
     [HttpGet]
-    [ProducesResponseType<MockErpShippingDuration>(StatusCodes.Status200OK)]
+    [ProducesResponseType<MockErpShippingRoute>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public ActionResult<MockErpShippingDuration> Get(
+    public ActionResult<MockErpShippingRoute> Get(
         [FromQuery, Required] string originReference,
         [FromQuery, Required] string destinationReference,
         [FromQuery, Required] string shippingProfileReference,

@@ -22,7 +22,7 @@ public sealed class MockErpDataStore
     private readonly IReadOnlyList<MockErpWorkingShift> _shifts;
     private readonly IReadOnlyList<MockErpHoliday> _holidays;
     private readonly IReadOnlyList<MockErpPlannedDowntime> _plannedDowntimes;
-    private readonly IReadOnlyList<MockErpShippingDuration> _shippingDurations;
+    private readonly IReadOnlyList<MockErpShippingRoute> _shippingDurations;
 
     public MockErpDataStore(IHostEnvironment environment)
         : this(Path.Combine(environment.ContentRootPath, SeedRelativePath))
@@ -65,6 +65,7 @@ public sealed class MockErpDataStore
         EnsureUnique(
             seed.CapacityCalendar.WorkCenters.Select(workCenter => workCenter.WorkCenterRef),
             "work center");
+        EnsureValidShippingRoutes(seed.ShippingDurations);
         EnsureValidWorkOrderRoutings(seed.WorkOrders, seed.CapacityCalendar.WorkCenters);
 
         var orders = seed.Orders
@@ -170,7 +171,7 @@ public sealed class MockErpDataStore
                 item.End >= rangeStart && item.Start <= rangeEnd));
     }
 
-    public MockErpShippingDuration? GetShippingDuration(
+    public MockErpShippingRoute? GetShippingDuration(
         string originReference,
         string destinationReference,
         string shippingProfileReference) =>
@@ -181,6 +182,31 @@ public sealed class MockErpDataStore
                 item.ShippingProfileReference,
                 shippingProfileReference,
                 StringComparison.Ordinal));
+
+    private static void EnsureValidShippingRoutes(IEnumerable<MockErpShippingRoute> routes)
+    {
+        var duplicate = routes
+            .GroupBy(
+                route => (route.OriginReference, route.DestinationReference, route.ShippingProfileReference))
+            .FirstOrDefault(group => group.Count() > 1);
+
+        if (duplicate is not null)
+        {
+            throw new InvalidOperationException(
+                $"Mock ERP seed contains duplicate shipping route " +
+                $"'{duplicate.Key.OriginReference}' -> '{duplicate.Key.DestinationReference}' " +
+                $"with profile '{duplicate.Key.ShippingProfileReference}'.");
+        }
+
+        var invalid = routes.FirstOrDefault(route => route.ShippingDurationMinutes <= 0);
+        if (invalid is not null)
+        {
+            throw new InvalidOperationException(
+                $"Shipping route '{invalid.OriginReference}' -> '{invalid.DestinationReference}' " +
+                $"has an invalid ShippingDurationMinutes ({invalid.ShippingDurationMinutes}); " +
+                "it must be positive.");
+        }
+    }
 
     private static IReadOnlyList<T> ReadOnly<T>(IEnumerable<T> items) =>
         Array.AsReadOnly(items.ToArray());
@@ -248,7 +274,7 @@ public sealed class MockErpDataStore
         List<MockErpOpenPurchaseOrder>? OpenPurchaseOrders,
         List<MockErpWorkOrder>? WorkOrders,
         SeedCapacityCalendar? CapacityCalendar,
-        List<MockErpShippingDuration>? ShippingDurations);
+        List<MockErpShippingRoute>? ShippingDurations);
 
     private sealed record SeedOrder(
         string Id,

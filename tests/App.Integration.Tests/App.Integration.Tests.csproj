@@ -37,5 +37,8 @@
     <None Update="Fixtures\MockErp\RoutingContract\mock-erp-seed.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Update="Fixtures\MockErp\ShippingRouteContract\mock-erp-seed.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 </Project>

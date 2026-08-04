@@ -86,8 +86,7 @@ public sealed record PlannedDowntimeReadDto(
     long PlannedDowntimeMinutes);
 
 public sealed record ShippingDurationReadDto(
-    string? OriginReference,
-    string? DestinationReference,
-    string? ShippingProfileReference,
-    string? RoutingReference,
+    string OriginReference,
+    string DestinationReference,
+    string ShippingProfileReference,
     long ShippingDurationMinutes);

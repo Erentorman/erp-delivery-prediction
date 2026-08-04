@@ -13,4 +13,4 @@ internal sealed record MockErpWorkCenter(string WorkCenterRef, string Name);
 internal sealed record MockErpWorkingShift(string WorkCenterReference, DateTimeOffset Start, DateTimeOffset End);
 internal sealed record MockErpHoliday(DateOnly Date, string? WorkCenterReference);
 internal sealed record MockErpPlannedDowntime(string WorkCenterReference, DateTimeOffset Start, DateTimeOffset End, long PlannedDowntimeMinutes);
-internal sealed record MockErpShippingDuration(string? OriginReference, string? DestinationReference, string? ShippingProfileReference, string? RoutingReference, long ShippingDurationMinutes);
+internal sealed record MockErpShippingRoute(string OriginReference, string DestinationReference, string ShippingProfileReference, long ShippingDurationMinutes);

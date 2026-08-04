@@ -1,0 +1,22 @@
+{
+  "orders": [],
+  "products": [],
+  "boms": [],
+  "stockLevels": [],
+  "openPurchaseOrders": [],
+  "workOrders": [],
+  "capacityCalendar": {
+    "workCenters": [],
+    "shifts": [],
+    "holidays": [],
+    "plannedDowntimes": []
+  },
+  "shippingDurations": [
+    {
+      "originReference": "WH-IST-01",
+      "destinationReference": "CUSTOMER-ANK-01",
+      "shippingProfileReference": "STANDARD",
+      "shippingDurationMinutes": 1440
+    }
+  ]
+}

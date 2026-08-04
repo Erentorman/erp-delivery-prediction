@@ -82,6 +82,22 @@ public sealed class MockErpDataProviderTests
     }
 
     [Fact]
+    public void MapShippingRouteReadModel_PreservesMinimumContract()
+    {
+        var source = new MockErpShippingRoute("WH-IST", "CUSTOMER-ANK", "STANDARD", 2_147_483_648L);
+
+        var result = MockErpDataProvider.MapShippingRouteReadModel(source);
+
+        Assert.Equal("WH-IST", result.OriginReference);
+        Assert.Equal("CUSTOMER-ANK", result.DestinationReference);
+        Assert.Equal("STANDARD", result.ShippingProfileReference);
+        Assert.Equal(2_147_483_648L, result.ShippingDurationMinutes);
+        Assert.Equal(
+            ["OriginReference", "DestinationReference", "ShippingProfileReference", "ShippingDurationMinutes"],
+            result.GetType().GetProperties().Select(property => property.Name));
+    }
+
+    [Fact]
     public async Task OrderItems_PerformsOrderAndProductGets_AndAppliesApprovedMapping()
     {
         var handler = new RecordingHandler(
@@ -126,7 +142,7 @@ public sealed class MockErpDataProviderTests
             Json(new[] { new { purchaseOrderReference = "PO1", productReference = "P/1", openQuantity = 3.75m, expectedAvailabilityDateTime = start, supplierLeadTimeMinutes = 90L, status = "Open" } }),
             Json(new[] { new { workOrderReference = "WO1", orderReference = "SO 1", productReference = "P/1", status = "Open", routing = new { routingReference = "ROUTE-P1-STD", operations = new[] { new { operationReference = "OP1", operationSequence = 10, workCenterReference = "WC&1", standardDurationMinutes = 2_147_483_648L, predecessorOperationReferences = new[] { "OP0" } } } } } }),
             Json(new { rangeStart = start, rangeEnd = end, workCenters = new[] { new { workCenterRef = "WC&1", name = "Assembly Line 1" } }, shifts = new[] { new { workCenterReference = "WC&1", start, end } }, holidays = new[] { new { date = "2026-08-02", workCenterReference = (string?)null } }, plannedDowntimes = new[] { new { workCenterReference = "WC&1", start, end, plannedDowntimeMinutes = 60L } } }),
-            Json(new { originReference = "TR IST", destinationReference = "DE/BER", shippingProfileReference = "AIR&FAST", routingReference = "R1", shippingDurationMinutes = 1440L }));
+            Json(new { originReference = "TR IST", destinationReference = "DE/BER", shippingProfileReference = "AIR&FAST", shippingDurationMinutes = 1440L }));
         var (provider, _) = Create(handler);
 
         Assert.Equal("KG", (await provider.GetProductAsync("P/1", default))!.UnitOfMeasure);

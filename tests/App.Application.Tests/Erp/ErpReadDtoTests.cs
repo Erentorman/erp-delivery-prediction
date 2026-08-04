@@ -57,7 +57,6 @@ public sealed class ErpReadDtoTests
             "WH-1",
             "ZONE-2",
             "STANDARD",
-            "ROUTE-7",
             1_440);
 
         Assert.Equal("SO-100", order.OrderReference);
@@ -68,7 +67,6 @@ public sealed class ErpReadDtoTests
         Assert.Equal("OP-10", Assert.Single(operation.PredecessorOperationReferences));
         Assert.Equal("ROUTE-PRODUCT-1-STD", workOrder.Routing.RoutingReference);
         Assert.Equal(1_440, shipping.ShippingDurationMinutes);
-        Assert.Equal("ROUTE-7", shipping.RoutingReference);
     }
 
     [Fact]

@@ -104,8 +104,18 @@ internal sealed class MockErpDataProvider : IErpDataProvider
             new KeyValuePair<string, string>("destinationReference", destinationReference),
             new KeyValuePair<string, string>("shippingProfileReference", shippingProfileReference)
         };
-        var value = await GetNullableAsync<MockErpShippingDuration>("GetShippingDuration", Query("api/shipping-durations", query), cancellationToken);
-        return value is null ? null : new ShippingDurationReadDto(value.OriginReference, value.DestinationReference, value.ShippingProfileReference, value.RoutingReference, value.ShippingDurationMinutes);
+        var value = await GetNullableAsync<MockErpShippingRoute>("GetShippingDuration", Query("api/shipping-durations", query), cancellationToken);
+        if (value is null)
+        {
+            return null;
+        }
+
+        var readModel = MapShippingRouteReadModel(value);
+        return new ShippingDurationReadDto(
+            readModel.OriginReference,
+            readModel.DestinationReference,
+            readModel.ShippingProfileReference,
+            readModel.ShippingDurationMinutes);
     }
 
     private async Task<T?> GetNullableAsync<T>(string operation, string relativeUri, CancellationToken cancellationToken)
@@ -291,6 +301,13 @@ internal sealed class MockErpDataProvider : IErpDataProvider
             operation.StandardDurationMinutes,
             Array.AsReadOnly(operation.PredecessorOperationReferences.ToArray())))
             .ToArray()));
+
+    internal static ShippingRouteReadModel MapShippingRouteReadModel(MockErpShippingRoute source) =>
+        new(
+            source.OriginReference,
+            source.DestinationReference,
+            source.ShippingProfileReference,
+            source.ShippingDurationMinutes);
 
     private static CapacityAndCalendarReadDto MapCapacity(MockErpCapacityAndCalendar value) => new(
         value.RangeStart, value.RangeEnd,
