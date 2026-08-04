@@ -4,13 +4,13 @@
 | Alan | Değer |
 |---|---|
 | Doküman Türü | Software Architecture Document (SAD) |
-| Sürüm | 1.1 — AI Prediction Katmanı Entegre Teknik Mimari Taban Çizgisi |
+| Sürüm | 1.2 — Sprint 1 Mimari Karar Hizalaması |
 | Kapsam | 10 Günlük MVP (roadmap yeniden planlanacaktır) |
 | Hedef ERP | Uyumsoft (Faz-2 gerçek entegrasyon) |
 | Ekip | 4 Yazılım Geliştirici + 2 ERP Uzmanı |
 | Durum | Teknik Mimari Onaylandı — Yeni Roadmap ve Görev Dağılımı Bekleniyor |
 
-> Bu doküman, önceki aşamalarda alınmış tüm mimari kararların birleştirilmiş referansıdır. **Sürüm 1.1**, sisteme ikinci bir tahmin sağlayıcısı olarak gerçek fakat sınırlı bir **AI Prediction katmanı** ekleyen revizyonları ve son tutarlılık düzeltmelerini içerir. Mevcut mimari (Modular Monolith, Clean Architecture, `IErpDataProvider`, PredictionContext snapshot, Rule-Based Prediction + CPM, Step-Based Pipeline) korunmuştur; AI, mevcut motorun yanına eklenmiştir, içine gömülmemiştir.
+> Bu doküman, önceki aşamalarda alınmış tüm mimari kararların birleştirilmiş referansıdır. **Sürüm 1.2**, Sprint 1 sırasında koda yansıtılan mimari kararları (T-358 İş Merkezi master data, T-359 Routing/Operasyon predecessor sözleşmesi, T-360 sabit sevkiyat rota modeli, T-361 MVP varsayımları config v2 ve Category A alan yasağı) belgeye işler ve §9.9 AI Feature Contract'ta ürün kategorisinin opsiyonel/Faz-2 statüsünü netleştirir. Mimari yön değişmemiştir; bir önceki revizyon olan **Sürüm 1.1**, sisteme ikinci bir tahmin sağlayıcısı olarak gerçek fakat sınırlı bir **AI Prediction katmanı** ekleyen revizyonları ve son tutarlılık düzeltmelerini içermişti. Mevcut mimari (Modular Monolith, Clean Architecture, `IErpDataProvider`, PredictionContext snapshot, Rule-Based Prediction + CPM, Step-Based Pipeline) korunmuştur; AI, mevcut motorun yanına eklenmiştir, içine gömülmemiştir.
 >
 > **Lead Time Birimi (kesin karar):** İç hesaplama ve kalıcılık temel birimi **working minutes (çalışma dakikası)**'dır. Rule-Based, AI ve Final Hybrid tahminleri aynı temel birimi kullanır. AI modelinin hedef değişkeni `actual_total_working_lead_time_minutes`'tir. AI takvim günü veya teslim tarihi tahmin etmez; teslim tarihi ve kullanıcıya gösterilen çalışma günü karşılığı her zaman C# `WorkingCalendar` servisi tarafından üretilir.
 
@@ -244,7 +244,7 @@ Sistem **iki bağımsız tahmin sağlayıcısı** kullanır ve sonuçları birle
 
 **AI baseline model (MVP):** Başlangıç adayı **HistGradientBoostingRegressor**'dır, ancak **kesin model değildir**. Nihai tek baseline model; veri setinin büyüklüğü, eksik değer oranı ve feature tipleri görüldükten sonra **Linear Regression, Random Forest Regressor veya HistGradientBoostingRegressor** arasından seçilir. MVP'de yalnızca **bir** model kullanılır; hyperparameter tuning ve çoklu model benchmark yapılmaz. **Mimari seçilen modele bağımlı değildir.** *(10 günlük MVP için uygun.)*
 
-> **Kategorik feature işleme:** `product_ref` ve `product_category` gibi kategorik feature'lar modele doğrudan ham string olarak verilmez. Sürüm kontrollü preprocessing/encoding adımıyla model-ready sayısal temsile dönüştürülür. Preprocessing kurallarındaki kırıcı değişiklikler `feature_schema_version` yükseltilerek izlenir.
+> **Kategorik feature işleme:** `product_ref` kategorik feature'ı modele doğrudan ham string olarak verilmez; sürüm kontrollü preprocessing/encoding adımıyla model-ready sayısal temsile dönüştürülür. **`product_category` MVP'de zorunlu değildir (Sprint 1 kararı, bkz. §9.9):** Mock ERP `ProductReadDto.PlanningClassification` alanı MVP boyunca her zaman `null` döner; sözleşmeden kaldırılmaz ama Faz-2'ye kadar opsiyonel/kullanılmayan bir alan olarak kalır. Kullanılabilir hale geldiğinde aynı sürüm kontrollü encoding kuralına tabidir. Preprocessing kurallarındaki kırıcı değişiklikler `feature_schema_version` yükseltilerek izlenir.
 
 > **Lead time temel birimi (kesin karar):** İç hesaplama, karşılaştırma ve kalıcılık için temel birim **working minutes (çalışma dakikası)**'dır. Rule-Based, AI ve Final Hybrid aynı temel birimi (`working_lead_time_minutes`) kullanır. AI modelinin hedef değişkeni `actual_total_working_lead_time_minutes`'tir; AI doğrudan takvim günü veya teslim tarihi tahmin etmez. Teslim tarihi ve kullanıcıya gösterilen çalışma günü karşılığı, dakika değeri vardiya ve çalışma takvimi üzerine yerleştirilerek C# `WorkingCalendar` servisi tarafından üretilir.
 
@@ -627,7 +627,8 @@ sequenceDiagram
 
 | Feature | Ham Snapshot Kaynağı | Tip |
 |---|---|---|
-| product_ref / product_category | Ürün (sürüm kontrollü encoding ile) | kategorik |
+| product_ref | Ürün (sürüm kontrollü encoding ile) | kategorik |
+| product_category *(opsiyonel — Faz-2, bkz. not)* | Ürün `PlanningClassification` (MVP'de her zaman null) | kategorik |
 | quantity | Sipariş | sayısal |
 | bom_item_count | BOM | sayısal |
 | missing_material_count | BOM × miktar vs stok (bağımsız hesap) | sayısal |
@@ -643,7 +644,7 @@ sequenceDiagram
 | shipping_duration_minutes | Sevkiyat | sayısal |
 | requested_delivery_lead_minutes | Sipariş | sayısal |
 
-> Kategorik alanlar (`product_ref`, `product_category`) modele ham string olarak verilmez; sürüm kontrollü preprocessing/encoding ile sayısal temsile dönüştürülür. Preprocessing'teki kırıcı değişiklikler `feature_schema_version` yükseltilerek izlenir.
+> Kategorik alanlar ham string olarak verilmez; sürüm kontrollü preprocessing/encoding ile sayısal temsile dönüştürülür. Preprocessing'teki kırıcı değişiklikler `feature_schema_version` yükseltilerek izlenir. **`product_category` (Sprint 1 kararı):** Ürün kategorisi MVP kapsamında zorunlu bir sınıflandırma değildir; Mock ERP kaynağında (`ProductReadDto.PlanningClassification`) şu an karşılığı yoktur (her zaman `null`). Alan sözleşmeden kaldırılmamıştır — gerçek ERP verisiyle doldurulduğunda Faz-2'de devreye girecek şekilde nullable/opsiyonel bırakılmıştır.
 
 **Sürüm alanları (baştan tutulur):** `feature_schema_version` (preprocessing/encoding değişikliklerini de temsil eder — ayrı `preprocessing_version` MVP'de eklenmez), `model_version`, `training_dataset_version`. *(MVP için uygun.)*
 
@@ -896,6 +897,31 @@ classDiagram
 - AI servisine özgü response şekilleri yalnızca Integration'da kalır; Application'a `AiResult` DTO'su çıkar.
 - Timeout `IAiPredictionClient` çağrısına parametre olarak geçer; koda gömülmez (env/SystemSettings).
 - Faz-2'de gerçek model registry veya farklı bir AI altyapısına geçilse dahi yalnızca bu adapter değişir.
+
+### 12.7 MVP Varsayımları Config Katmanı (`mvp-assumptions.v2.json`)
+
+ERP kaynağında (Excel → Mock ERP seed) karşılığı bulunmayan ama motorun çalışabilmesi için gerekli olan değerler, **seed JSON'a değil**, Application'da tanımlı `MvpAssumptionsOptions` (ve alt seçenekleri `WorkingCalendarOptions`, `ProcurementOptions`, `ShippingOptions`) aracılığıyla ayrı bir config dosyasından (`mvp-assumptions.v2.json`) okunur. Bu, Mock ERP'nin "gerçek ERP verisi" görünümünü bozmama ilkesini (bkz. §1.3) korur.
+
+**Category A alan yasağı (kesin kural, `CategoryAFieldGuard`):** `machineCount`, `operationDuration`, `durationBasis`, `alternativeWorkCenter` ve türevleri gibi **gerçek ERP master/operasyonel verisi olması gereken alanlar bu config'e asla yazılamaz**; API başlangıcında `CategoryAFieldGuard` bu alanların yokluğunu ve `configVersion`/`netMinutesPerDay` tutarlılığını doğrular, ihlalde uygulama başlamaz. Bu alanların gerçek kaynağı Mock ERP'nin kendisidir (İş Merkezi ve Routing master data, bkz. §12.9).
+
+**Working Calendar fallback:** `workingCalendar.*` (çalışma saatleri, mola, `netMinutesPerDay`, çalışma günleri) MVP varsayılanı olarak config'ten okunur; sabit tarihli 2026 resmî tatilleri `holidaysPendingApproval` altında **onay bekler** durumda listelenir. **Open Question / Future Work:** Değişken tarihli dini bayramlar bu listede yoktur ve repoda doğrulanamamıştır; ERP/HR onayı gerekir.
+
+**Procurement fallback:** ERP açık satın alma siparişinde gerçek `ExpectedAvailabilityDateTime` yoksa, `procurement.defaultLeadTimeWorkingMinutes = 960` (2 iş günü) Application seviyesinde fallback olarak uygulanır. Bu değerin fallback olarak kullanıldığı, tahmin faktörü/audit/sonuç metadata'sında **görünür** olmalıdır — sessizce uygulanmaz. *(Sprint 1 kararı.)*
+
+### 12.8 Sabit Sevkiyat Rota Modeli (Shipping Route Lookup)
+
+Sevkiyat süresi için harita servisi, dış API veya mesafe formülü **kullanılmaz** (Sprint 1 kararı). Sabit origin **İstanbul fabrikası** ve **4 deterministik destinasyon** (İstanbul, Ankara, İzmir, Antalya) üzerinden çalışan bir route lookup modeli benimsenmiştir:
+
+- `IShippingRouteLookupService` (Application port) → `ShippingRouteLookupService` (Infrastructure, sabit varsayılan rota listesiyle) — `IErpDataProvider`/`IAiPredictionClient` ile aynı port/adapter deseni.
+- Sonuç tipi kapalı bir küme döner: `RouteFound`, `UnknownDestination`, `UnknownRoute`, `InvalidRouteData`.
+- `shipping.unknownRouteFallbackMinutes` (config) **yalnızca bilinmeyen rota durumunda** devreye giren bir fallback'tir; genel/ana sevkiyat modeli değildir. Önceki tek global `defaultShippingDurationMinutes` (medyan tabanlı) yaklaşımı bu kararla **geçersiz kalmıştır.**
+- Gerçek rota süreleri Mock ERP'nin `shippingDurations` alanından (`IErpDataProvider.GetShippingDurationAsync`) beklenir; bu alan Excel kaynağında karşılıksız olduğundan şu an boştur.
+
+### 12.9 İş Merkezi Master Data (Work Center)
+
+Kapasite/takvim snapshot'ı (`GetCapacityAndCalendarAsync`), iş merkezi başına yalnızca kapasite sayılarını değil, **açık, görünür operasyonel/master data** olarak `Name`, `MachineCount` ve `DefaultShiftReference` alanlarını da taşır (Sprint 1 kararı — bu alanlar görünmez bir config varsayımı olarak gömülmez). `MachineCount >= 1` zorunludur ve Mock ERP tarafında doğrulanır.
+
+Operasyon bazlı standart süre ve bağımlılık (predecessor) verisi de aynı ilkeyle **iş emri/operasyon master data'sının** bir parçasıdır (`WorkOrderReadDto.Operations`); operasyon referansı/sırası iş emri kapsamında tekildir, her operasyonun `WorkCenterReference`'ı tanımlı bir iş merkezine işaret etmelidir, predecessor'lar aynı iş emri içinde kalır. Bu iki alan (`machineCount`, operasyon süresi) **Category A** olarak sınıflandırılır ve config fallback'ine asla yazılamaz (bkz. §12.7) — gerçek değerleri yalnızca ERP uzmanlarından talep edilecek iş merkezi ve routing veri paketiyle sağlanabilir.
 
 ---
 
@@ -1388,6 +1414,14 @@ MVP tabanı üzerine, iş kuralları ve tahmin motoru yeniden yazılmadan eklene
 - **§16** — API DTO alanları `workingLeadTimeMinutes` + `displayWorkingLeadTime` olarak güncellendi.
 - **§18** — v1.0 roadmap geçersiz işaretlendi; yeni roadmap onay bekliyor.
 
+### v1.2 Sprint 1 Mimari Karar Hizalamasında Yapılan Değişiklikler
+
+- **§6.4 / §9.9** — `product_category` AI feature'ı MVP'de opsiyonel/Faz-2 olarak işaretlendi; `product_ref`'ten ayrıştırıldı (Mock ERP `PlanningClassification` her zaman null, alan sözleşmeden kaldırılmadı).
+- **§12 (yeni 12.7)** — `mvp-assumptions.v2.json` / `MvpAssumptionsOptions` / `CategoryAFieldGuard` config katmanı ve Category A alan yasağı belgeye eklendi; Working Calendar (dini bayram tatilleri onay bekliyor — Open Question) ve Procurement (`defaultLeadTimeWorkingMinutes = 960`, 2 iş günü, görünür olmalı) fallback kararları netleştirildi.
+- **§12 (yeni 12.8)** — Sabit sevkiyat rota modeli (İstanbul origin + 4 destinasyon, `IShippingRouteLookupService`) belgeye eklendi; tek global `defaultShippingDurationMinutes` yaklaşımının bu kararla geçersiz kaldığı not edildi.
+- **§12 (yeni 12.9)** — İş merkezi master data (`MachineCount`, `Name`, `DefaultShiftReference`) ve routing operasyon/predecessor sözleşmesi, Category A ilkesiyle birlikte belgeye eklendi.
+- Bu revizyon **yeni mimari üretmez**; yalnızca Sprint 1'de koda yansıtılmış (T-358, T-359, T-360, T-361) kararları belgeler. Ground-truth şema isim uyumsuzluğu (§18.4) ve T-346 Priority konusu bu revizyonun kapsamı dışında bırakılmış, **Future Work** olarak işaretlenmiştir. `docs/SAD-v1.1.md` bu revizyonla `docs/SAD-v1.2.md` olarak yeniden adlandırılmıştır; içerik dışında hiçbir dosya değiştirilmedi.
+
 ### Doküman Sonu
 
-Bu SAD (sürüm **1.1 — AI Prediction Katmanı Entegre Teknik Mimari Taban Çizgisi**), teknik olarak onaylanmıştır; yeni roadmap ve görev dağılımı beklenmektedir. Herhangi bir mimari değişiklik, bu dokümanın sürümlenmesiyle (1.2, 1.3, …) izlenmelidir. Nihai sistem her zaman üç sonucu üretir: **Rule-Based tahmin, AI tahmini ve Nihai Hibrit tahmin.**
+Bu SAD (sürüm **1.2 — Sprint 1 Mimari Karar Hizalaması**), teknik olarak onaylanmıştır; yeni roadmap ve görev dağılımı beklenmektedir. Herhangi bir mimari değişiklik, bu dokümanın sürümlenmesiyle (1.3, …) izlenmelidir. Nihai sistem her zaman üç sonucu üretir: **Rule-Based tahmin, AI tahmini ve Nihai Hibrit tahmin.**

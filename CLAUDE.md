@@ -16,7 +16,7 @@ The system predicts manufacturing order delivery time using:
 
 The authoritative architecture document is:
 
-`docs/SAD-v1.1.md`
+`docs/SAD-v1.2.md`
 
 Do not invent or change architectural decisions.
 
