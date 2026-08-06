@@ -1,23 +1,33 @@
+import type { ComponentType } from 'react';
 import { Outlet, Link as RouterLink, useNavigate, useLocation } from 'react-router-dom';
 import { AppBar, Toolbar, Typography, Button, Container, Box, IconButton, Tooltip } from '@mui/material';
 import InsightsOutlinedIcon from '@mui/icons-material/InsightsOutlined';
 import LogoutOutlinedIcon from '@mui/icons-material/LogoutOutlined';
 import DarkModeOutlinedIcon from '@mui/icons-material/DarkModeOutlined';
 import LightModeOutlinedIcon from '@mui/icons-material/LightModeOutlined';
+import DashboardOutlinedIcon from '@mui/icons-material/DashboardOutlined';
+import WarningAmberOutlinedIcon from '@mui/icons-material/WarningAmberOutlined';
+import ListAltOutlinedIcon from '@mui/icons-material/ListAltOutlined';
+import TimelineOutlinedIcon from '@mui/icons-material/TimelineOutlined';
+import WarehouseOutlinedIcon from '@mui/icons-material/WarehouseOutlined';
 import { useAuth } from '../context/AuthContext';
 import { useThemeMode } from '../context/ThemeModeContext';
 
 interface NavItem {
   label: string;
   to: string;
+  icon: ComponentType<{ sx?: object }>;
 }
 
+// Sıra, iş değerine göre önceliklendirilmiştir: Panel (özet) → Gecikenler (günlük
+// risk takibi, en kritik ekran) → Siparişler/Teslimat Tahmini (ara sıra bakılan
+// yardımcı akışlar) → Stok (referans veri, en az sık kullanılan).
 const navItems: NavItem[] = [
-  { label: 'Panel', to: '/' },
-  { label: 'Siparişler', to: '/orders' },
-  { label: 'Teslimat Tahmini', to: '/predictions' },
-  { label: 'Gecikenler', to: '/predictions/delayed' },
-  { label: 'Stok', to: '/inventory' },
+  { label: 'Panel', to: '/', icon: DashboardOutlinedIcon },
+  { label: 'Gecikenler', to: '/predictions/delayed', icon: WarningAmberOutlinedIcon },
+  { label: 'Siparişler', to: '/orders', icon: ListAltOutlinedIcon },
+  { label: 'Teslimat Tahmini', to: '/predictions', icon: TimelineOutlinedIcon },
+  { label: 'Stok', to: '/inventory', icon: WarehouseOutlinedIcon },
 ];
 
 export default function Layout() {
@@ -72,6 +82,7 @@ export default function Layout() {
                 color="inherit"
                 component={RouterLink}
                 to={item.to}
+                startIcon={<item.icon sx={{ fontSize: 16 }} />}
                 sx={{
                   borderRadius: 999,
                   px: 2,

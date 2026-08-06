@@ -2,7 +2,8 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 import {
   Typography, Box, Card, CardContent, Button,
-  Alert, AlertTitle, CircularProgress, useTheme
+  Alert, AlertTitle, CircularProgress, useTheme,
+  Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Link
 } from '@mui/material';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import ListAltIcon from '@mui/icons-material/ListAlt';
@@ -14,7 +15,9 @@ import WarehouseOutlinedIcon from '@mui/icons-material/WarehouseOutlined';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import { getMockOrders, Order, ORDERS_DATA_IS_MOCK } from '../features/orders/orderMockData';
 import { hasStockShortfall } from '../features/orders/orderDetailMockData';
-import { useOpenOrderDelayRisk } from '../features/prediction/useOpenOrderDelayRisk';
+import { useOpenOrderDelayRisk, getRequestedDeliveryDate } from '../features/prediction/useOpenOrderDelayRisk';
+import { formatUserFriendlyDate } from '../features/prediction/predictionHelpers';
+import { RiskGauge } from '../components/RiskGauge';
 
 interface StatCardProps {
   icon: ReactNode;
@@ -22,9 +25,10 @@ interface StatCardProps {
   value: ReactNode;
   accentColor: string;
   to?: string;
+  extra?: ReactNode;
 }
 
-function StatCard({ icon, label, value, accentColor, to }: StatCardProps) {
+function StatCard({ icon, label, value, accentColor, to, extra }: StatCardProps) {
   const cardProps = to ? { component: RouterLink, to } : {};
 
   return (
@@ -39,7 +43,7 @@ function StatCard({ icon, label, value, accentColor, to }: StatCardProps) {
         '&:hover': to ? { transform: 'translateY(-2px)', boxShadow: '0 4px 16px rgba(15,41,66,0.10)' } : undefined,
       }}
     >
-      <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+      <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, minHeight: 148 }}>
         <Box sx={{
           width: 34, height: 34, borderRadius: 2,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -52,6 +56,7 @@ function StatCard({ icon, label, value, accentColor, to }: StatCardProps) {
           <Typography sx={{ fontSize: '30px', fontWeight: 700, color: 'textPrimary', lineHeight: 1 }}>{value}</Typography>
           {to && <ArrowForwardIcon sx={{ fontSize: 16, color: 'textMuted' }} />}
         </Box>
+        {extra && <Box sx={{ mt: 'auto', pt: 0.5 }}>{extra}</Box>}
       </CardContent>
     </Card>
   );
@@ -77,6 +82,12 @@ export default function Dashboard() {
 
   const delayedCount = delayRiskRows.filter(r => r.status === 'delayed').length;
   const delayRiskStillCalculating = delayRiskRows.some(r => r.status === 'loading');
+  const openOrdersCount = pendingOrders + inProductionOrders;
+  const delayRatio = openOrdersCount > 0 ? Math.round((delayedCount / openOrdersCount) * 100) : 0;
+  const topRiskyOrders = [...delayRiskRows]
+    .filter((r) => r.status === 'delayed')
+    .sort((a, b) => (b.delayDays ?? 0) - (a.delayDays ?? 0))
+    .slice(0, 5);
 
   return (
     <Box sx={{ maxWidth: '1200px', mx: 'auto', width: '100%' }}>
@@ -135,6 +146,9 @@ export default function Dashboard() {
               value={delayRiskLoading ? <CircularProgress size={20} /> : `${delayedCount}${delayRiskStillCalculating ? '+' : ''}`}
               accentColor={theme.palette.error.main}
               to="/predictions/delayed"
+              extra={!delayRiskLoading && openOrdersCount > 0 && (
+                <RiskGauge value={delayRatio} caption={`${delayedCount} / ${openOrdersCount} açık sipariş`} size={80} />
+              )}
             />
             <StatCard
               icon={<WarehouseOutlinedIcon sx={{ fontSize: 18, color: theme.palette.warning.main }} />}
@@ -144,6 +158,49 @@ export default function Dashboard() {
               to="/inventory"
             />
           </Box>
+
+          {topRiskyOrders.length > 0 && (
+            <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', mb: 4, overflow: 'hidden' }}>
+              <Box sx={{ px: '20px', pt: '16px', pb: '10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Typography sx={{ fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600, color: 'textPrimary' }}>
+                  En Riskli Siparişler
+                </Typography>
+                <Link component={RouterLink} to="/predictions/delayed" underline="hover" sx={{ fontSize: '12.5px', color: 'interactiveBlue', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  Tümünü gör <ArrowForwardIcon sx={{ fontSize: 14 }} />
+                </Link>
+              </Box>
+              <TableContainer component={Paper} elevation={0} sx={{ border: 'none' }}>
+                <Table size="small">
+                  <TableHead sx={{ bgcolor: 'surfaceSubtle' }}>
+                    <TableRow>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Sipariş</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Ürün</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>İstenen Teslim</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold', textAlign: 'right' }}>Gecikme</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {topRiskyOrders.map((row) => (
+                      <TableRow key={row.order.orderReference} hover>
+                        <TableCell>
+                          <Link component={RouterLink} to={`/orders/${encodeURIComponent(row.order.orderReference)}`} underline="hover" sx={{ color: 'interactiveBlue', fontWeight: 600 }}>
+                            {row.order.orderReference}
+                          </Link>
+                        </TableCell>
+                        <TableCell>{row.order.productSummary}</TableCell>
+                        <TableCell>{formatUserFriendlyDate(getRequestedDeliveryDate(row.order))}</TableCell>
+                        <TableCell sx={{ textAlign: 'right' }}>
+                          <Typography component="span" sx={{ fontSize: '12.5px', fontWeight: 700, color: 'error.main' }}>
+                            {row.delayDays} gün
+                          </Typography>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </Card>
+          )}
 
           <Card elevation={0} sx={{
             textAlign: 'center', py: 5, px: 4,

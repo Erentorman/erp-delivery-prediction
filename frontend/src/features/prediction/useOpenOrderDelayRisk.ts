@@ -23,7 +23,7 @@ export function getRequestedDeliveryDate(order: Order): string {
   return order.orderDate;
 }
 
-function computeDelayDays(estimatedDelivery: string, requestedDeliveryDate: string): number {
+export function computeDelayDays(estimatedDelivery: string, requestedDeliveryDate: string): number {
   const estimated = new Date(estimatedDelivery).getTime();
   const requested = new Date(requestedDeliveryDate).getTime();
   return Math.ceil((estimated - requested) / (1000 * 60 * 60 * 24));

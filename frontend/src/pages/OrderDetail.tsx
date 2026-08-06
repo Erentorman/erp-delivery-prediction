@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate, Link as RouterLink } from 'react-router-dom';
+import { useParams, Link as RouterLink } from 'react-router-dom';
 import {
   Typography, Box, Card, CardContent, Button,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper,
@@ -7,13 +7,17 @@ import {
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import TimelineIcon from '@mui/icons-material/Timeline';
+import OpenInNewOutlinedIcon from '@mui/icons-material/OpenInNewOutlined';
 import { getMockOrderDetail, ORDER_DETAIL_DATA_IS_MOCK, type OrderDetail } from '../features/orders/orderDetailMockData';
 import { buildPredictionUrl, formatUserFriendlyDate } from '../features/prediction/predictionHelpers';
+import { usePredictionCalculation } from '../features/prediction/hooks/usePredictionCalculation';
+import { computeDelayDays } from '../features/prediction/useOpenOrderDelayRisk';
+import { ValidationErrorBanner, CalculationFailureBanner } from '../features/prediction/components';
 
 export default function OrderDetailPage() {
   const { orderReference } = useParams<{ orderReference: string }>();
-  const navigate = useNavigate();
   const [detail, setDetail] = useState<OrderDetail | null | undefined>(undefined);
+  const { state: predictionState, calculate } = usePredictionCalculation();
 
   useEffect(() => {
     if (!orderReference) return;
@@ -72,14 +76,65 @@ export default function OrderDetailPage() {
                 </Box>
               </Box>
 
-              <Button
-                variant="contained"
-                sx={{ mt: 3, textTransform: 'none', borderRadius: 2 }}
-                startIcon={<TimelineIcon />}
-                onClick={() => navigate(buildPredictionUrl(detail.orderReference))}
-              >
-                Teslimat Tahminini Hesapla
-              </Button>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, mt: 3 }}>
+                <Button
+                  variant="contained"
+                  sx={{ textTransform: 'none', borderRadius: 2 }}
+                  startIcon={predictionState.status === 'loading' ? <CircularProgress size={16} sx={{ color: 'inherit' }} /> : <TimelineIcon />}
+                  disabled={predictionState.status === 'loading'}
+                  onClick={() => calculate(detail.orderReference)}
+                >
+                  Teslimat Tahminini Hesapla
+                </Button>
+                {predictionState.status === 'success' && (
+                  <Button
+                    component={RouterLink}
+                    to={buildPredictionUrl(detail.orderReference)}
+                    variant="text"
+                    endIcon={<OpenInNewOutlinedIcon sx={{ fontSize: 15 }} />}
+                    sx={{ textTransform: 'none', borderRadius: 2 }}
+                  >
+                    Detaylı tahmin sayfasında aç
+                  </Button>
+                )}
+              </Box>
+
+              {predictionState.status === 'validationError' && (
+                <Box sx={{ mt: 2 }}>
+                  <ValidationErrorBanner detail={predictionState.detail} />
+                </Box>
+              )}
+              {predictionState.status === 'calculationFailure' && (
+                <Box sx={{ mt: 2 }}>
+                  <CalculationFailureBanner errorCode={predictionState.errorCode} detail={predictionState.detail} />
+                </Box>
+              )}
+              {predictionState.status === 'success' && (() => {
+                const result = predictionState.data;
+                const delayDays = computeDelayDays(result.estimatedDelivery, detail.requestedDeliveryDate);
+                return (
+                  <Box sx={{
+                    mt: 2, p: '14px 16px', borderRadius: 2,
+                    border: '1px solid', borderColor: 'divider', bgcolor: 'surfaceSubtle',
+                    display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 2,
+                  }}>
+                    <Box>
+                      <Typography sx={{ fontSize: '11px', textTransform: 'uppercase', color: 'textSecondary', fontWeight: 600, mb: 0.5 }}>Tahmini Teslim</Typography>
+                      <Typography sx={{ fontSize: '14px', fontWeight: 600 }}>{formatUserFriendlyDate(result.estimatedDelivery)}</Typography>
+                    </Box>
+                    <Box>
+                      <Typography sx={{ fontSize: '11px', textTransform: 'uppercase', color: 'textSecondary', fontWeight: 600, mb: 0.5 }}>Kritik Yol Operasyonu</Typography>
+                      <Typography sx={{ fontSize: '14px', fontWeight: 600 }}>{result.criticalPathOperations.length} operasyon</Typography>
+                    </Box>
+                    <Box>
+                      <Typography sx={{ fontSize: '11px', textTransform: 'uppercase', color: 'textSecondary', fontWeight: 600, mb: 0.5 }}>İstenen Tarihe Göre</Typography>
+                      <Typography sx={{ fontSize: '14px', fontWeight: 700, color: delayDays > 0 ? 'error.main' : 'success.main' }}>
+                        {delayDays > 0 ? `${delayDays} gün gecikiyor` : 'Zamanında'}
+                      </Typography>
+                    </Box>
+                  </Box>
+                );
+              })()}
             </CardContent>
           </Card>
 
