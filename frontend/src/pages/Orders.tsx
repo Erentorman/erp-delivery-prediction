@@ -1,35 +1,113 @@
-import { Typography, Box, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { 
+  Typography, Box, Paper, Table, TableBody, TableCell, 
+  TableContainer, TableHead, TableRow, Button, Chip,
+  Alert, AlertTitle, CircularProgress
+} from '@mui/material';
+import { getMockOrders, Order, ORDERS_DATA_IS_MOCK, OrderStatus } from '../features/orders/orderMockData';
+import { buildPredictionUrl } from '../features/prediction/predictionHelpers';
 
-const dummyOrders = [
-  { id: 'ORD-001', product: 'Widget A', quantity: 100, date: '2026-07-29' },
-  { id: 'ORD-002', product: 'Widget B', quantity: 50, date: '2026-07-30' },
-];
+function getStatusColor(status: OrderStatus) {
+  switch (status) {
+    case 'Tamamlandı': return 'success';
+    case 'Üretimde': return 'info';
+    case 'İptal': return 'error';
+    case 'Beklemede':
+    default:
+      return 'default';
+  }
+}
+
+function formatDate(isoDate: string) {
+  const date = new Date(isoDate);
+  return new Intl.DateTimeFormat('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }).format(date);
+}
 
 export default function Orders() {
+  const navigate = useNavigate();
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    getMockOrders().then(data => {
+      setOrders(data);
+      setLoading(false);
+    });
+  }, []);
+
   return (
-    <Box>
-      <Typography variant="h4" component="h1" gutterBottom>
-        Orders (Read Only)
+    <Box sx={{ maxWidth: '1200px', mx: 'auto', width: '100%' }}>
+      <Typography variant="h1" gutterBottom sx={{ fontSize: '18px', color: 'brand900', mb: 1 }}>
+        Siparişler
       </Typography>
-      <TableContainer component={Paper} sx={{ mt: 3, boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}>
+      <Typography color="textSecondary" sx={{ mb: 4, fontSize: '13px' }}>
+        Aşağıdaki listeden bir sipariş seçerek teslimat tahminini hesaplayabilirsiniz.
+      </Typography>
+
+      {ORDERS_DATA_IS_MOCK && (
+        <Alert severity="info" sx={{ mb: 4, borderRadius: 2 }}>
+          <AlertTitle>Bilgi</AlertTitle>
+          Bu liste örnek veridir. Gerçek sipariş verileri bağlandığında burası güncellenecektir.
+        </Alert>
+      )}
+
+      <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
         <Table>
-          <TableHead sx={{ bgcolor: 'grey.100' }}>
+          <TableHead sx={{ bgcolor: 'grey.50' }}>
             <TableRow>
-              <TableCell>Order ID</TableCell>
-              <TableCell>Product</TableCell>
-              <TableCell>Quantity</TableCell>
-              <TableCell>Date</TableCell>
+              <TableCell sx={{ fontWeight: 'bold' }}>Sipariş Referansı</TableCell>
+              <TableCell sx={{ fontWeight: 'bold' }}>Müşteri</TableCell>
+              <TableCell sx={{ fontWeight: 'bold' }}>Ürün Özeti</TableCell>
+              <TableCell sx={{ fontWeight: 'bold' }}>Sipariş Tarihi</TableCell>
+              <TableCell sx={{ fontWeight: 'bold' }}>Durum</TableCell>
+              <TableCell sx={{ fontWeight: 'bold', textAlign: 'right' }}>İşlem</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {dummyOrders.map((row) => (
-              <TableRow key={row.id}>
-                <TableCell>{row.id}</TableCell>
-                <TableCell>{row.product}</TableCell>
-                <TableCell>{row.quantity}</TableCell>
-                <TableCell>{row.date}</TableCell>
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
+                  <CircularProgress size={24} />
+                  <Typography variant="body2" sx={{ mt: 1 }}>Yükleniyor...</Typography>
+                </TableCell>
               </TableRow>
-            ))}
+            ) : orders.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
+                  <Typography variant="body2" color="textSecondary">
+                    Listelenecek sipariş bulunamadı.
+                  </Typography>
+                </TableCell>
+              </TableRow>
+            ) : (
+              orders.map((row) => (
+                <TableRow key={row.orderReference} hover>
+                  <TableCell>{row.orderReference}</TableCell>
+                  <TableCell>{row.customerName}</TableCell>
+                  <TableCell>{row.productSummary}</TableCell>
+                  <TableCell>{formatDate(row.orderDate)}</TableCell>
+                  <TableCell>
+                    <Chip 
+                      label={row.status} 
+                      size="small" 
+                      color={getStatusColor(row.status)} 
+                      sx={{ fontWeight: 'bold', fontSize: '11px' }}
+                    />
+                  </TableCell>
+                  <TableCell align="right">
+                    <Button 
+                      variant="outlined" 
+                      size="small"
+                      onClick={() => navigate(buildPredictionUrl(row.orderReference))}
+                      sx={{ textTransform: 'none', borderRadius: 2 }}
+                    >
+                      Tahminle
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </TableContainer>

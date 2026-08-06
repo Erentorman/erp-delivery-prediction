@@ -8,9 +8,9 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { label: 'Dashboard', to: '/' },
-  { label: 'Orders', to: '/orders' },
-  { label: 'Predictions', to: '/predictions' },
+  { label: 'Panel', to: '/' },
+  { label: 'Siparişler', to: '/orders' },
+  { label: 'Teslimat Tahmini', to: '/predictions' },
 ];
 
 export default function Layout() {
