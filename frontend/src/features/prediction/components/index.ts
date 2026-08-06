@@ -1,4 +1,5 @@
 export { PredictionResultSummary } from './PredictionResultSummary';
+export { ProviderComparisonCards } from './ProviderComparisonCards';
 export { DemoDataBanner } from './DemoDataBanner';
 export { CriticalPathCard } from './CriticalPathCard';
 export { MaterialShortagesCard } from './MaterialShortagesCard';

@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { 
-  Typography, Box, Paper, Table, TableBody, TableCell, 
+import { useNavigate, Link as RouterLink } from 'react-router-dom';
+import {
+  Typography, Box, Paper, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, Button, Chip,
-  Alert, AlertTitle, CircularProgress
+  Alert, AlertTitle, CircularProgress, Link
 } from '@mui/material';
 import { getMockOrders, Order, ORDERS_DATA_IS_MOCK, OrderStatus } from '../features/orders/orderMockData';
 import { buildPredictionUrl } from '../features/prediction/predictionHelpers';
@@ -83,7 +83,11 @@ export default function Orders() {
             ) : (
               orders.map((row) => (
                 <TableRow key={row.orderReference} hover>
-                  <TableCell>{row.orderReference}</TableCell>
+                  <TableCell>
+                    <Link component={RouterLink} to={`/orders/${encodeURIComponent(row.orderReference)}`} underline="hover">
+                      {row.orderReference}
+                    </Link>
+                  </TableCell>
                   <TableCell>{row.customerName}</TableCell>
                   <TableCell>{row.productSummary}</TableCell>
                   <TableCell>{formatDate(row.orderDate)}</TableCell>

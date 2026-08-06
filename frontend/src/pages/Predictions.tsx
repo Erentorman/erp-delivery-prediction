@@ -4,15 +4,17 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { Typography, Box, TextField, Button, CircularProgress } from '@mui/material';
 import { usePredictionCalculation } from '../features/prediction/hooks/usePredictionCalculation';
 import { formatUserFriendlyDate, isDemoData } from '../features/prediction/predictionHelpers';
-import { 
-  PredictionResultSummary, 
-  DemoDataBanner, 
-  CriticalPathCard, 
-  MaterialShortagesCard, 
-  FallbackReasonsCard, 
-  OperationsTimelineCard, 
-  ValidationErrorBanner, 
-  CalculationFailureBanner 
+import { buildMockProviderComparison } from '../features/prediction/providerComparisonMock';
+import {
+  PredictionResultSummary,
+  ProviderComparisonCards,
+  DemoDataBanner,
+  CriticalPathCard,
+  MaterialShortagesCard,
+  FallbackReasonsCard,
+  OperationsTimelineCard,
+  ValidationErrorBanner,
+  CalculationFailureBanner
 } from '../features/prediction/components';
 
 export default function Predictions() {
@@ -114,30 +116,37 @@ export default function Predictions() {
           <CalculationFailureBanner errorCode={state.errorCode} detail={state.detail} />
         )}
 
-        {state.status === 'success' && state.data && (
+        {state.status === 'success' && state.data && (() => {
+          const ruleBased = state.data;
+          const { ai, hybrid } = buildMockProviderComparison(ruleBased);
+
+          return (
           <Box>
-            <DemoDataBanner visible={isDemoData(state.data)} />
-            
-            <PredictionResultSummary 
-              delivery={formatUserFriendlyDate(state.data.estimatedDelivery)}
-              start={formatUserFriendlyDate(state.data.estimatedStart)}
-              end={formatUserFriendlyDate(state.data.estimatedEnd)}
-              orderReference={state.data.orderReference}
+            <DemoDataBanner visible={isDemoData(ruleBased)} />
+
+            <PredictionResultSummary
+              delivery={formatUserFriendlyDate(ruleBased.estimatedDelivery)}
+              start={formatUserFriendlyDate(ruleBased.estimatedStart)}
+              end={formatUserFriendlyDate(ruleBased.estimatedEnd)}
+              orderReference={ruleBased.orderReference}
             />
+
+            <ProviderComparisonCards ruleBased={ruleBased} ai={ai} hybrid={hybrid} />
+
+            <CriticalPathCard operations={ruleBased.timeline} />
             
-            <CriticalPathCard operations={state.data.timeline} />
-            
-            {state.data.shortages && state.data.shortages.length > 0 && (
-              <MaterialShortagesCard shortages={state.data.shortages} />
+            {ruleBased.shortages && ruleBased.shortages.length > 0 && (
+              <MaterialShortagesCard shortages={ruleBased.shortages} />
             )}
-            
-            {state.data.appliedFallbackReasons && state.data.appliedFallbackReasons.length > 0 && (
-              <FallbackReasonsCard reasons={state.data.appliedFallbackReasons} />
+
+            {ruleBased.appliedFallbackReasons && ruleBased.appliedFallbackReasons.length > 0 && (
+              <FallbackReasonsCard reasons={ruleBased.appliedFallbackReasons} />
             )}
-            
-            <OperationsTimelineCard timeline={state.data.timeline} />
+
+            <OperationsTimelineCard timeline={ruleBased.timeline} />
           </Box>
-        )}
+          );
+        })()}
       </Box>
     </Box>
   );

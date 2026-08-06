@@ -10,7 +10,7 @@ export interface Order {
   status: OrderStatus;
 }
 
-const mockOrders: Order[] = [
+export const mockOrders: Order[] = [
   {
     orderReference: 'SO00001',
     customerName: 'Acme Corp',

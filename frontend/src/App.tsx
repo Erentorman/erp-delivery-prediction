@@ -4,7 +4,10 @@ import Layout from './components/Layout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Orders from './pages/Orders';
+import OrderDetail from './pages/OrderDetail';
 import Predictions from './pages/Predictions';
+import DelayedPredictions from './pages/DelayedPredictions';
+import Inventory from './pages/Inventory';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -23,7 +26,10 @@ function App() {
               <Route element={<Layout />}>
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/orders" element={<Orders />} />
+                <Route path="/orders/:orderReference" element={<OrderDetail />} />
                 <Route path="/predictions" element={<Predictions />} />
+                <Route path="/predictions/delayed" element={<DelayedPredictions />} />
+                <Route path="/inventory" element={<Inventory />} />
               </Route>
             </Route>
             {/* Catch all */}

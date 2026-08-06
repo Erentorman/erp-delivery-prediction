@@ -11,6 +11,8 @@ const navItems: NavItem[] = [
   { label: 'Panel', to: '/' },
   { label: 'Siparişler', to: '/orders' },
   { label: 'Teslimat Tahmini', to: '/predictions' },
+  { label: 'Gecikenler', to: '/predictions/delayed' },
+  { label: 'Stok', to: '/inventory' },
 ];
 
 export default function Layout() {
@@ -23,39 +25,57 @@ export default function Layout() {
     navigate('/login');
   };
 
-  const isActive = (path: string) =>
-    path === '/' ? location.pathname === '/' : location.pathname.startsWith(path);
+  const isActive = (path: string) => {
+    if (path === '/') return location.pathname === '/';
+    const matches = navItems.filter((item) => item.to !== '/' && location.pathname.startsWith(item.to));
+    if (matches.length === 0) return false;
+    const mostSpecific = matches.reduce((a, b) => (b.to.length > a.to.length ? b : a));
+    return mostSpecific.to === path;
+  };
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', bgcolor: 'background.default' }}>
       <AppBar position="static" color="primary" elevation={0}>
-        <Toolbar>
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1, fontWeight: 'bold' }}>
+        <Toolbar sx={{ flexWrap: { xs: 'wrap', md: 'nowrap' }, gap: 1, py: { xs: 1, md: 0 } }}>
+          <Typography variant="h6" component="div" sx={{ flexGrow: 1, fontWeight: 'bold', fontSize: { xs: '1rem', md: '1.25rem' } }}>
             ERP Delivery Prediction
           </Typography>
-          {navItems.map((item) => (
-            <Button
-              key={item.to}
-              color="inherit"
-              component={RouterLink}
-              to={item.to}
-              sx={{
-                borderRadius: 1,
-                px: 1.5,
-                bgcolor: isActive(item.to) ? 'rgba(255,255,255,0.15)' : 'transparent',
-                borderBottom: isActive(item.to) ? '2px solid white' : '2px solid transparent',
-                '&:hover': {
-                  bgcolor: 'rgba(255,255,255,0.1)',
-                },
-              }}
-            >
-              {item.label}
-            </Button>
-          ))}
+          <Box
+            sx={{
+              display: 'flex',
+              gap: 0.5,
+              overflowX: 'auto',
+              maxWidth: '100%',
+              scrollbarWidth: 'none',
+              '&::-webkit-scrollbar': { display: 'none' },
+            }}
+          >
+            {navItems.map((item) => (
+              <Button
+                key={item.to}
+                color="inherit"
+                component={RouterLink}
+                to={item.to}
+                sx={{
+                  borderRadius: 1,
+                  px: 1.5,
+                  flexShrink: 0,
+                  whiteSpace: 'nowrap',
+                  bgcolor: isActive(item.to) ? 'rgba(255,255,255,0.15)' : 'transparent',
+                  borderBottom: isActive(item.to) ? '2px solid white' : '2px solid transparent',
+                  '&:hover': {
+                    bgcolor: 'rgba(255,255,255,0.1)',
+                  },
+                }}
+              >
+                {item.label}
+              </Button>
+            ))}
+          </Box>
           <Button
             color="inherit"
             onClick={handleLogout}
-            sx={{ ml: 2, border: '1px solid rgba(255,255,255,0.5)' }}
+            sx={{ ml: { xs: 0, md: 2 }, flexShrink: 0, border: '1px solid rgba(255,255,255,0.5)' }}
           >
             Logout
           </Button>
