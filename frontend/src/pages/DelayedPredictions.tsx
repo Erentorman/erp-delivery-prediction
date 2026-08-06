@@ -21,7 +21,7 @@ export default function DelayedPredictions() {
 
   return (
     <Box sx={{ maxWidth: '1200px', mx: 'auto', width: '100%' }}>
-      <Typography variant="h1" gutterBottom sx={{ fontSize: '18px', color: 'brand900', mb: 1 }}>
+      <Typography variant="h1" gutterBottom sx={{ fontSize: '18px', color: 'textPrimary', mb: 1 }}>
         Tahmin Listesi / Gecikenler
       </Typography>
       <Typography color="textSecondary" sx={{ mb: 3, fontSize: '13px' }}>
@@ -43,7 +43,7 @@ export default function DelayedPredictions() {
 
       <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
         <Table>
-          <TableHead sx={{ bgcolor: 'grey.50' }}>
+          <TableHead sx={{ bgcolor: 'surfaceSubtle' }}>
             <TableRow>
               <TableCell sx={{ fontWeight: 'bold' }}>Sipariş Referansı</TableCell>
               <TableCell sx={{ fontWeight: 'bold' }}>Ürün</TableCell>
@@ -72,7 +72,7 @@ export default function DelayedPredictions() {
               visibleRows.map((row) => (
                 <TableRow key={row.order.orderReference} hover>
                   <TableCell>
-                    <Link component={RouterLink} to={`/orders/${encodeURIComponent(row.order.orderReference)}`} underline="hover">
+                    <Link component={RouterLink} to={`/orders/${encodeURIComponent(row.order.orderReference)}`} underline="hover" sx={{ color: 'interactiveBlue', fontWeight: 600 }}>
                       {row.order.orderReference}
                     </Link>
                   </TableCell>

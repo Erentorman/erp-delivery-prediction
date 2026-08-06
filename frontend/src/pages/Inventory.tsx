@@ -9,7 +9,7 @@ export default function Inventory() {
 
   return (
     <Box sx={{ maxWidth: '1000px', mx: 'auto', width: '100%' }}>
-      <Typography variant="h1" gutterBottom sx={{ fontSize: '18px', color: 'brand900', mb: 1 }}>
+      <Typography variant="h1" gutterBottom sx={{ fontSize: '18px', color: 'textPrimary', mb: 1 }}>
         Stok Görünümü
       </Typography>
       <Typography color="textSecondary" sx={{ mb: 3, fontSize: '13px' }}>
@@ -23,7 +23,7 @@ export default function Inventory() {
 
       <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
         <Table>
-          <TableHead sx={{ bgcolor: 'grey.50' }}>
+          <TableHead sx={{ bgcolor: 'surfaceSubtle' }}>
             <TableRow>
               <TableCell sx={{ fontWeight: 'bold' }}>Ürün</TableCell>
               <TableCell sx={{ fontWeight: 'bold', textAlign: 'right' }}>Eldeki Miktar</TableCell>

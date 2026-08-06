@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider, CssBaseline } from '@mui/material';
 import Layout from './components/Layout';
@@ -10,10 +11,14 @@ import DelayedPredictions from './pages/DelayedPredictions';
 import Inventory from './pages/Inventory';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
+import { ThemeModeProvider, useThemeMode } from './context/ThemeModeContext';
 
-import { theme } from './theme';
+import { createAppTheme } from './theme';
 
-function App() {
+function ThemedApp() {
+  const { mode } = useThemeMode();
+  const theme = useMemo(() => createAppTheme(mode), [mode]);
+
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
@@ -41,5 +46,12 @@ function App() {
   );
 }
 
-export default App;
+function App() {
+  return (
+    <ThemeModeProvider>
+      <ThemedApp />
+    </ThemeModeProvider>
+  );
+}
 
+export default App;

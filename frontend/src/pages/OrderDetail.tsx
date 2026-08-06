@@ -32,7 +32,7 @@ export default function OrderDetailPage() {
         Siparişler listesine dön
       </Button>
 
-      <Typography variant="h1" gutterBottom sx={{ fontSize: '18px', color: 'brand900', mb: 1 }}>
+      <Typography variant="h1" gutterBottom sx={{ fontSize: '18px', color: 'textPrimary', mb: 1 }}>
         Sipariş Detayı — {orderReference}
       </Typography>
 
@@ -86,7 +86,7 @@ export default function OrderDetailPage() {
           <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1.5 }}>Ürün Reçetesi (BOM)</Typography>
           <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, mb: 3 }}>
             <Table size="small">
-              <TableHead sx={{ bgcolor: 'grey.50' }}>
+              <TableHead sx={{ bgcolor: 'surfaceSubtle' }}>
                 <TableRow>
                   <TableCell sx={{ fontWeight: 'bold' }}>Bileşen</TableCell>
                   <TableCell sx={{ fontWeight: 'bold' }}>Açıklama</TableCell>
@@ -148,7 +148,7 @@ export default function OrderDetailPage() {
                 <Chip label={detail.workOrder.status} size="small" color={detail.workOrder.status === 'Completed' ? 'success' : 'info'} />
               </Box>
               <Table size="small">
-                <TableHead sx={{ bgcolor: 'grey.50' }}>
+                <TableHead sx={{ bgcolor: 'surfaceSubtle' }}>
                   <TableRow>
                     <TableCell sx={{ fontWeight: 'bold' }}>Sıra</TableCell>
                     <TableCell sx={{ fontWeight: 'bold' }}>Operasyon</TableCell>

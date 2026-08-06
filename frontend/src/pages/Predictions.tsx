@@ -61,7 +61,7 @@ export default function Predictions() {
           Siparişler listesine dön
         </Button>
       )}
-      <Typography variant="h1" gutterBottom sx={{ fontSize: '18px', color: 'brand900', mb: 1 }}>
+      <Typography variant="h1" gutterBottom sx={{ fontSize: '18px', color: 'textPrimary', mb: 1 }}>
         Teslimat Tahmini
       </Typography>
       <Typography color="textSecondary" sx={{ mb: 4, fontSize: '13px' }}>

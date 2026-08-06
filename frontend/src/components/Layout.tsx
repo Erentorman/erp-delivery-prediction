@@ -1,6 +1,11 @@
 import { Outlet, Link as RouterLink, useNavigate, useLocation } from 'react-router-dom';
-import { AppBar, Toolbar, Typography, Button, Container, Box } from '@mui/material';
+import { AppBar, Toolbar, Typography, Button, Container, Box, IconButton, Tooltip } from '@mui/material';
+import InsightsOutlinedIcon from '@mui/icons-material/InsightsOutlined';
+import LogoutOutlinedIcon from '@mui/icons-material/LogoutOutlined';
+import DarkModeOutlinedIcon from '@mui/icons-material/DarkModeOutlined';
+import LightModeOutlinedIcon from '@mui/icons-material/LightModeOutlined';
 import { useAuth } from '../context/AuthContext';
+import { useThemeMode } from '../context/ThemeModeContext';
 
 interface NavItem {
   label: string;
@@ -17,6 +22,7 @@ const navItems: NavItem[] = [
 
 export default function Layout() {
   const { logout } = useAuth();
+  const { mode, toggleMode } = useThemeMode();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -35,11 +41,21 @@ export default function Layout() {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', bgcolor: 'background.default' }}>
-      <AppBar position="static" color="primary" elevation={0}>
+      <AppBar position="sticky" sx={{ top: 0 }}>
         <Toolbar sx={{ flexWrap: { xs: 'wrap', md: 'nowrap' }, gap: 1, py: { xs: 1, md: 0 } }}>
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1, fontWeight: 'bold', fontSize: { xs: '1rem', md: '1.25rem' } }}>
-            ERP Delivery Prediction
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, flexGrow: 1 }}>
+            <Box sx={{
+              width: 30, height: 30, borderRadius: 1.5,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              bgcolor: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.16)',
+              flexShrink: 0,
+            }}>
+              <InsightsOutlinedIcon sx={{ fontSize: 17, color: '#fff' }} />
+            </Box>
+            <Typography variant="h6" component="div" sx={{ fontWeight: 700, fontSize: { xs: '0.9rem', md: '1.05rem' }, whiteSpace: 'nowrap' }}>
+              ERP Delivery Prediction
+            </Typography>
+          </Box>
           <Box
             sx={{
               display: 'flex',
@@ -57,12 +73,12 @@ export default function Layout() {
                 component={RouterLink}
                 to={item.to}
                 sx={{
-                  borderRadius: 1,
-                  px: 1.5,
+                  borderRadius: 999,
+                  px: 2,
                   flexShrink: 0,
                   whiteSpace: 'nowrap',
-                  bgcolor: isActive(item.to) ? 'rgba(255,255,255,0.15)' : 'transparent',
-                  borderBottom: isActive(item.to) ? '2px solid white' : '2px solid transparent',
+                  fontWeight: isActive(item.to) ? 700 : 500,
+                  bgcolor: isActive(item.to) ? 'rgba(255,255,255,0.16)' : 'transparent',
                   '&:hover': {
                     bgcolor: 'rgba(255,255,255,0.1)',
                   },
@@ -72,12 +88,29 @@ export default function Layout() {
               </Button>
             ))}
           </Box>
+          <Tooltip title={mode === 'dark' ? 'Aydınlık moda geç' : 'Koyu moda geç'}>
+            <IconButton
+              onClick={toggleMode}
+              size="small"
+              sx={{
+                ml: { xs: 0, md: 1 },
+                flexShrink: 0,
+                color: '#fff',
+                border: '1px solid rgba(255,255,255,0.2)',
+                bgcolor: 'rgba(255,255,255,0.06)',
+                '&:hover': { bgcolor: 'rgba(255,255,255,0.14)' },
+              }}
+            >
+              {mode === 'dark' ? <LightModeOutlinedIcon sx={{ fontSize: 18 }} /> : <DarkModeOutlinedIcon sx={{ fontSize: 18 }} />}
+            </IconButton>
+          </Tooltip>
           <Button
             color="inherit"
             onClick={handleLogout}
-            sx={{ ml: { xs: 0, md: 2 }, flexShrink: 0, border: '1px solid rgba(255,255,255,0.5)' }}
+            startIcon={<LogoutOutlinedIcon sx={{ fontSize: 16 }} />}
+            sx={{ ml: { xs: 0, md: 1.5 }, flexShrink: 0, borderRadius: 999, border: '1px solid rgba(255,255,255,0.35)' }}
           >
-            Logout
+            Çıkış
           </Button>
         </Toolbar>
       </AppBar>
@@ -87,11 +120,10 @@ export default function Layout() {
       </Container>
 
       <Box component="footer" sx={{ py: 3, textAlign: 'center', bgcolor: 'background.paper', borderTop: '1px solid', borderColor: 'divider' }}>
-        <Typography variant="body2" color="textSecondary">
-          © {new Date().getFullYear()} ERP Delivery Prediction System. AI-Powered.
+        <Typography variant="body2" color="textSecondary" sx={{ fontSize: '12.5px' }}>
+          © {new Date().getFullYear()} ERP Delivery Prediction System
         </Typography>
       </Box>
     </Box>
   );
 }
-
