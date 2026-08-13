@@ -99,7 +99,7 @@ public class PredictionsControllerTests
     {
         var items = new List<PredictionHistoryListItem>
         {
-            new(1, "ORD-1", false, "Calculated", "Full", 60, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow)
+            new(1, "ORD-1", false, "Calculated", "Full", 60, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow, null)
         };
         _predictionRepositoryMock
             .Setup(r => r.GetHistoryAsync(null, 1, 20, It.IsAny<CancellationToken>()))
@@ -116,7 +116,7 @@ public class PredictionsControllerTests
         var detail = new PredictionHistoryDetail(
             1, "ORD-1", false, null, "Calculated", "Full", 60,
             DateTimeOffset.UtcNow, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow, null,
-            null, DateTimeOffset.UtcNow, null, null, null, []);
+            null, DateTimeOffset.UtcNow, null, null, null, [], null);
         _predictionRepositoryMock.Setup(r => r.GetByIdAsync(1, It.IsAny<CancellationToken>())).ReturnsAsync(detail);
 
         var result = await _controller.GetHistoryById(1, CancellationToken.None);

@@ -8,7 +8,8 @@ public sealed record PredictionHistoryListItem(
     string DataSufficiencyLevel,
     long? FinalWorkingLeadTimeMinutes,
     DateTimeOffset? DeliveryDate,
-    DateTimeOffset CalculatedAt);
+    DateTimeOffset CalculatedAt,
+    WhatIfSimulationInputSummary? SimulationInput);
 
 public sealed record PredictionHistoryProviderResult(
     string ProviderType,
@@ -38,4 +39,5 @@ public sealed record PredictionHistoryDetail(
     DateTimeOffset? ActualDeliveryDate,
     long? ActualTotalWorkingLeadTimeMinutes,
     bool? DeliveredLate,
-    IReadOnlyList<PredictionHistoryProviderResult> ProviderResults);
+    IReadOnlyList<PredictionHistoryProviderResult> ProviderResults,
+    WhatIfSimulationInputSummary? SimulationInput);

@@ -96,22 +96,36 @@ public sealed class PredictionRepository : IPredictionRepository
         var effectivePage = page < 1 ? 1 : page;
         var effectivePageSize = pageSize is < 1 or > 100 ? 20 : pageSize;
 
-        var items = await query
+        var rows = await query
             .OrderByDescending(p => p.CalculatedAt)
             .Skip((effectivePage - 1) * effectivePageSize)
             .Take(effectivePageSize)
-            .Select(p => new PredictionHistoryListItem(
+            .Select(p => new
+            {
                 p.Id,
                 p.ErpOrderRef,
                 p.IsSimulation,
                 p.Status,
                 p.DataSufficiencyLevel,
                 p.FinalWorkingLeadTimeMinutes,
-                p.DeliveryDate.HasValue ? new DateTimeOffset(DateTime.SpecifyKind(p.DeliveryDate.Value, DateTimeKind.Utc)) : null,
-                new DateTimeOffset(DateTime.SpecifyKind(p.CalculatedAt, DateTimeKind.Utc))))
+                p.DeliveryDate,
+                p.CalculatedAt,
+                p.SimulationInputSummary
+            })
             .ToListAsync(cancellationToken);
 
-        return items;
+        return rows
+            .Select(r => new PredictionHistoryListItem(
+                r.Id,
+                r.ErpOrderRef,
+                r.IsSimulation,
+                r.Status,
+                r.DataSufficiencyLevel,
+                r.FinalWorkingLeadTimeMinutes,
+                ToUtcOffset(r.DeliveryDate),
+                new DateTimeOffset(DateTime.SpecifyKind(r.CalculatedAt, DateTimeKind.Utc)),
+                ParseSimulationInput(r.IsSimulation, r.SimulationInputSummary)))
+            .ToList();
     }
 
     public async Task<PredictionHistoryDetail?> GetByIdAsync(long id, CancellationToken cancellationToken = default)
@@ -154,9 +168,15 @@ public sealed class PredictionRepository : IPredictionRepository
                     pr.FeatureSchemaVersion,
                     pr.TrainingDatasetVersion,
                     pr.Warnings))
-                .ToList());
+                .ToList(),
+            ParseSimulationInput(entity.IsSimulation, entity.SimulationInputSummary));
     }
 
     private static DateTimeOffset? ToUtcOffset(DateTime? value)
         => value.HasValue ? new DateTimeOffset(DateTime.SpecifyKind(value.Value, DateTimeKind.Utc)) : null;
+
+    private static WhatIfSimulationInputSummary? ParseSimulationInput(bool isSimulation, string? simulationInputSummary)
+        => isSimulation && simulationInputSummary is not null
+            ? JsonSerializer.Deserialize<WhatIfSimulationInputSummary>(simulationInputSummary, JsonOptions)
+            : null;
 }

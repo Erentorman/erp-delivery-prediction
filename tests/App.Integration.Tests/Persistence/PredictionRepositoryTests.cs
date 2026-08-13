@@ -149,6 +149,48 @@ public class PredictionRepositoryTests
     }
 
     [Fact]
+    public async Task GetHistoryAsync_WhatIfRow_IncludesParsedSimulationInput()
+    {
+        await using var db = CreateContext(nameof(GetHistoryAsync_WhatIfRow_IncludesParsedSimulationInput));
+        var repo = new PredictionRepository(db);
+        var start = new DateTimeOffset(2026, 1, 1, 10, 0, 0, TimeSpan.Zero);
+
+        await repo.SaveAsync(new PredictionPersistenceRequest("SO00001", false, null, null, CreateResult("SO00001", start)));
+        await repo.SaveAsync(new PredictionPersistenceRequest(
+            null, true, new WhatIfSimulationInputSummary("P001", 100m, "ankara"), null, CreateResult("WHATIF-P001", start.AddHours(1))));
+
+        var history = await repo.GetHistoryAsync(null, 1, 20);
+
+        var whatIfItem = history.Single(h => h.IsSimulation);
+        Assert.NotNull(whatIfItem.SimulationInput);
+        Assert.Equal("P001", whatIfItem.SimulationInput!.ProductReference);
+        Assert.Equal(100m, whatIfItem.SimulationInput.Quantity);
+        Assert.Equal("ankara", whatIfItem.SimulationInput.LocationReference);
+
+        var realOrderItem = history.Single(h => !h.IsSimulation);
+        Assert.Null(realOrderItem.SimulationInput);
+    }
+
+    [Fact]
+    public async Task GetByIdAsync_WhatIfRow_IncludesParsedSimulationInput()
+    {
+        await using var db = CreateContext(nameof(GetByIdAsync_WhatIfRow_IncludesParsedSimulationInput));
+        var repo = new PredictionRepository(db);
+        var start = new DateTimeOffset(2026, 1, 1, 10, 0, 0, TimeSpan.Zero);
+
+        await repo.SaveAsync(new PredictionPersistenceRequest(
+            null, true, new WhatIfSimulationInputSummary("P001", 100m, "ankara"), null, CreateResult("WHATIF-P001", start)));
+        var savedId = db.PredictionResults.Single().Id;
+
+        var detail = await repo.GetByIdAsync(savedId);
+
+        Assert.NotNull(detail!.SimulationInput);
+        Assert.Equal("P001", detail.SimulationInput!.ProductReference);
+        Assert.Equal(100m, detail.SimulationInput.Quantity);
+        Assert.Equal("ankara", detail.SimulationInput.LocationReference);
+    }
+
+    [Fact]
     public async Task GetByIdAsync_WhenNotFound_ReturnsNull()
     {
         await using var db = CreateContext(nameof(GetByIdAsync_WhenNotFound_ReturnsNull));
