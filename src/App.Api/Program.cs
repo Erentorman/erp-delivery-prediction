@@ -7,6 +7,7 @@ using App.Infrastructure.Shipping;
 using App.Integration.MockErp;
 using App.Persistence;
 using App.Persistence.IntegrationLogging;
+using App.Persistence.Prediction;
 using App.Api.Configuration;
 using App.Application.Contracts.Configuration;
 using App.Application.Erp;
@@ -32,6 +33,7 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
     ?? throw new InvalidOperationException("Connection string 'DefaultConnection' is not configured.");
 builder.Services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connectionString));
 builder.Services.AddScoped<IIntegrationLogWriter, IntegrationLogWriter>();
+builder.Services.AddScoped<IPredictionRepository, PredictionRepository>();
 
 builder.Services.AddInfrastructureSecurity(builder.Configuration);
 builder.Services.Configure<WhatIfShippingOptions>(
