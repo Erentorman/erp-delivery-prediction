@@ -1,3 +1,4 @@
+import { apiClient } from '../../api/client';
 import type {
   CalculatePredictionRequest,
   MaterialShortage,
@@ -8,8 +9,8 @@ import type {
 } from './predictionContracts';
 import { classifyProblem, PredictionApiError, toPredictionApiError } from './predictionErrors';
 
-export const PREDICTION_ENDPOINT = '/api/predictions/calculate';
-export const WHAT_IF_PREDICTION_ENDPOINT = '/api/predictions/simulate';
+export const PREDICTION_ENDPOINT = '/Predictions/calculate';
+export const WHAT_IF_PREDICTION_ENDPOINT = '/Predictions/simulate';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -58,28 +59,18 @@ function parseProblemDetails(value: unknown): ProblemDetails {
   };
 }
 
-async function readBody(response: Response): Promise<unknown> {
-  const text = await response.text();
-  if (!text) return null;
-  try {
-    return JSON.parse(text) as unknown;
-  } catch {
-    return text;
-  }
+function readBody(response: { data: unknown }): unknown {
+  return response.data === '' ? null : response.data;
 }
 
 export async function calculatePrediction(orderReference: string): Promise<RuleBasedPredictionResult> {
   const request: CalculatePredictionRequest = { orderReference: orderReference.trim() };
 
   try {
-    const response = await fetch(PREDICTION_ENDPOINT, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(request),
-    });
-    const body = await readBody(response);
+    const response = await apiClient.post(PREDICTION_ENDPOINT, request, { validateStatus: () => true });
+    const body = readBody(response);
 
-    if (!response.ok) {
+    if (response.status < 200 || response.status >= 300) {
       const problem = typeof body === 'string' ? { detail: body } : parseProblemDetails(body);
       throw classifyProblem(problem, response.status);
     }
@@ -94,13 +85,9 @@ export async function calculatePrediction(orderReference: string): Promise<RuleB
 
 export async function simulatePrediction(request: WhatIfPredictionRequest): Promise<RuleBasedPredictionResult> {
   try {
-    const response = await fetch(WHAT_IF_PREDICTION_ENDPOINT, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(request),
-    });
-    const body = await readBody(response);
-    if (!response.ok) {
+    const response = await apiClient.post(WHAT_IF_PREDICTION_ENDPOINT, request, { validateStatus: () => true });
+    const body = readBody(response);
+    if (response.status < 200 || response.status >= 300) {
       const problem = typeof body === 'string' ? { detail: body } : parseProblemDetails(body);
       throw classifyProblem(problem, response.status);
     }

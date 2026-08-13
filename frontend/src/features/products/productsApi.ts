@@ -1,3 +1,5 @@
+import { apiClient } from '../../api/client';
+
 export interface ProductListItem {
   productReference: string;
   name?: string;
@@ -5,9 +7,9 @@ export interface ProductListItem {
 }
 
 export async function getProducts(): Promise<ProductListItem[]> {
-  const response = await fetch('/api/products');
-  if (!response.ok) throw new Error(`Products request failed (${response.status}).`);
-  const body: unknown = await response.json();
+  const response = await apiClient.get('/Products', { validateStatus: () => true });
+  if (response.status < 200 || response.status >= 300) throw new Error(`Products request failed (${response.status}).`);
+  const body: unknown = response.data;
   if (!Array.isArray(body) || !body.every((item) => typeof item === 'object' && item !== null && typeof (item as Record<string, unknown>).productReference === 'string')) {
     throw new Error('The products service returned an unexpected response.');
   }
