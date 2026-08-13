@@ -16,6 +16,8 @@ public class AppDbContext : DbContext
     public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();
     public DbSet<IntegrationLog> IntegrationLogs => Set<IntegrationLog>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+    public DbSet<PredictionResult> PredictionResults => Set<PredictionResult>();
+    public DbSet<PredictionProviderResult> PredictionProviderResults => Set<PredictionProviderResult>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

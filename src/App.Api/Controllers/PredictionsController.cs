@@ -11,13 +11,16 @@ public sealed class PredictionsController : ControllerBase
 {
     private readonly IPredictionCalculationService _predictionService;
     private readonly IWhatIfPredictionCalculationService _whatIfPredictionService;
+    private readonly IPredictionRepository _predictionRepository;
 
     public PredictionsController(
         IPredictionCalculationService predictionService,
-        IWhatIfPredictionCalculationService whatIfPredictionService)
+        IWhatIfPredictionCalculationService whatIfPredictionService,
+        IPredictionRepository predictionRepository)
     {
         _predictionService = predictionService ?? throw new ArgumentNullException(nameof(predictionService));
         _whatIfPredictionService = whatIfPredictionService ?? throw new ArgumentNullException(nameof(whatIfPredictionService));
+        _predictionRepository = predictionRepository ?? throw new ArgumentNullException(nameof(predictionRepository));
     }
 
     [HttpPost("calculate")]
@@ -52,6 +55,29 @@ public sealed class PredictionsController : ControllerBase
         }
 
         return Ok(result.Value);
+    }
+
+    [HttpGet("history")]
+    public async Task<ActionResult<IReadOnlyList<PredictionHistoryListItem>>> GetHistory(
+        [FromQuery] string? orderReference,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        CancellationToken cancellationToken = default)
+    {
+        var items = await _predictionRepository.GetHistoryAsync(orderReference, page, pageSize, cancellationToken);
+        return Ok(items);
+    }
+
+    [HttpGet("history/{id:long}")]
+    public async Task<ActionResult<PredictionHistoryDetail>> GetHistoryById(long id, CancellationToken cancellationToken)
+    {
+        var item = await _predictionRepository.GetByIdAsync(id, cancellationToken);
+        if (item is null)
+        {
+            return NotFound();
+        }
+
+        return Ok(item);
     }
 }
 

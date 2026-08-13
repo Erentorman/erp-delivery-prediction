@@ -122,6 +122,48 @@ public sealed class WhatIfPredictionCalculationServiceTests
     }
 
     [Fact]
+    public async Task CalculateAsync_WhenPipelineSucceeds_PersistsAsSimulationWithoutErpOrderRef()
+    {
+        var context = CreateContext();
+        var fixture = new Fixture(DataSufficiency.Sufficient, context);
+        fixture.SetupSuccessfulCpm(context);
+
+        PredictionPersistenceRequest? captured = null;
+        fixture.PredictionRepository
+            .Setup(r => r.SaveAsync(It.IsAny<PredictionPersistenceRequest>(), It.IsAny<CancellationToken>()))
+            .Callback<PredictionPersistenceRequest, CancellationToken>((request, _) => captured = request)
+            .Returns(Task.CompletedTask);
+
+        var result = await fixture.Service.CalculateAsync(ValidRequest());
+
+        Assert.True(result.IsSuccess);
+        fixture.PredictionRepository.Verify(
+            r => r.SaveAsync(It.IsAny<PredictionPersistenceRequest>(), It.IsAny<CancellationToken>()),
+            Times.Once);
+        Assert.NotNull(captured);
+        Assert.Null(captured!.ErpOrderRef);
+        Assert.True(captured.IsSimulation);
+        Assert.NotNull(captured.SimulationInput);
+        Assert.Equal("PROD-1", captured.SimulationInput!.ProductReference);
+        Assert.Equal(1, captured.SimulationInput.Quantity);
+        Assert.Equal("istanbul", captured.SimulationInput.LocationReference);
+        Assert.Same(result.Value, captured.Result);
+    }
+
+    [Fact]
+    public async Task CalculateAsync_WhenContextDataIsInsufficient_DoesNotPersist()
+    {
+        var fixture = new Fixture(DataSufficiency.InsufficientData, null);
+
+        var result = await fixture.Service.CalculateAsync(ValidRequest());
+
+        Assert.False(result.IsSuccess);
+        fixture.PredictionRepository.Verify(
+            r => r.SaveAsync(It.IsAny<PredictionPersistenceRequest>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
     public async Task CalculateAsync_WhenRealRouteIsFound_UsesRealDuration()
     {
         var context = CreateContext();
@@ -208,6 +250,7 @@ public sealed class WhatIfPredictionCalculationServiceTests
         public Mock<ICriticalPathCalculator> CriticalPathCalculator { get; } = new();
         public Mock<IWhatIfShippingReferenceResolver> ShippingReferenceResolver { get; } = new();
         public Mock<IShippingRouteLookupService> ShippingRouteLookup { get; } = new();
+        public Mock<IPredictionRepository> PredictionRepository { get; } = new();
         public WhatIfPredictionCalculationService Service { get; }
 
         public Fixture(
@@ -258,7 +301,8 @@ public sealed class WhatIfPredictionCalculationServiceTests
                 CriticalPathCalculator.Object,
                 mapper,
                 ShippingReferenceResolver.Object,
-                ShippingRouteLookup.Object);
+                ShippingRouteLookup.Object,
+                PredictionRepository.Object);
         }
 
         public void SetupSuccessfulCpm(PredictionContext context) => CriticalPathCalculator
