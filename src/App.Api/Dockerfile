@@ -1,25 +1,48 @@
 # ------------------------------------------------------------
-# App.Api — Placeholder Dockerfile (T-104 Day-1 skeleton)
+# App.Api — Multi-stage build
 #
-# TODO (T-103): Replace this placeholder with the real multi-
-# stage build once the App.Api project is complete:
+# Build context is the repository root (see docker-compose.yml)
+# because App.Api references sibling projects (Domain, Application,
+# Integration, Persistence, Infrastructure) via ProjectReference.
 #
-#   Stage 1 (build):
-#     FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
-#     COPY . .
-#     RUN dotnet publish src/App.Api/App.Api.csproj \
-#         -c Release -o /app/publish
-#
-#   Stage 2 (runtime):
-#     FROM mcr.microsoft.com/dotnet/aspnet:8.0
-#     COPY --from=build /app/publish .
-#     ENTRYPOINT ["dotnet", "App.Api.dll"]
+# Layer order: project files are copied and restored first so that
+# `docker compose build` reuses the restore layer whenever only
+# source files (not dependencies) change.
+# ------------------------------------------------------------
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
+
+COPY src/App.Api/App.Api.csproj src/App.Api/
+COPY src/App.Domain/App.Domain.csproj src/App.Domain/
+COPY src/App.Application/App.Application.csproj src/App.Application/
+COPY src/App.Integration/App.Integration.csproj src/App.Integration/
+COPY src/App.Persistence/App.Persistence.csproj src/App.Persistence/
+COPY src/App.Infrastructure/App.Infrastructure.csproj src/App.Infrastructure/
+
+RUN dotnet restore src/App.Api/App.Api.csproj
+
+COPY src/App.Api/ src/App.Api/
+COPY src/App.Domain/ src/App.Domain/
+COPY src/App.Application/ src/App.Application/
+COPY src/App.Integration/ src/App.Integration/
+COPY src/App.Persistence/ src/App.Persistence/
+COPY src/App.Infrastructure/ src/App.Infrastructure/
+
+RUN dotnet publish src/App.Api/App.Api.csproj -c Release -o /app/publish --no-restore
+
+# ------------------------------------------------------------
+# Runtime stage
+# curl is installed only so the container's own HEALTHCHECK /
+# docker-compose healthcheck can call GET /health without
+# adding any application dependency.
 # ------------------------------------------------------------
 FROM mcr.microsoft.com/dotnet/aspnet:8.0
 WORKDIR /app
 
-# Placeholder: emit a clear message so `docker compose up`
-# shows this service needs its real build, then sleep so
-# health-dependent services have a chance to start normally.
-# Replace with a real ENTRYPOINT once the publish artifact exists.
-CMD ["sh", "-c", "echo '[api] Placeholder container — real build not yet implemented (T-103). Sleeping.' && sleep infinity"]
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=build /app/publish .
+
+ENTRYPOINT ["dotnet", "App.Api.dll"]

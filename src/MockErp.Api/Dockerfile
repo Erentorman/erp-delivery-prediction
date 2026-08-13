@@ -1,21 +1,34 @@
 # ------------------------------------------------------------
-# MockErp.Api — Placeholder Dockerfile (T-104 Day-1 skeleton)
+# MockErp.Api — Multi-stage build
 #
-# TODO (T-103): Replace this placeholder with the real multi-
-# stage build once the MockErp.Api project is complete:
-#
-#   Stage 1 (build):
-#     FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
-#     COPY . .
-#     RUN dotnet publish src/MockErp.Api/MockErp.Api.csproj \
-#         -c Release -o /app/publish
-#
-#   Stage 2 (runtime):
-#     FROM mcr.microsoft.com/dotnet/aspnet:8.0
-#     COPY --from=build /app/publish .
-#     ENTRYPOINT ["dotnet", "MockErp.Api.dll"]
+# Build context is the repository root (see docker-compose.yml)
+# for consistency with the other .NET services; MockErp.Api has
+# no ProjectReferences of its own.
+# ------------------------------------------------------------
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
+
+COPY src/MockErp.Api/MockErp.Api.csproj src/MockErp.Api/
+
+RUN dotnet restore src/MockErp.Api/MockErp.Api.csproj
+
+COPY src/MockErp.Api/ src/MockErp.Api/
+
+RUN dotnet publish src/MockErp.Api/MockErp.Api.csproj -c Release -o /app/publish --no-restore
+
+# ------------------------------------------------------------
+# Runtime stage
+# curl is installed only so the container's own HEALTHCHECK /
+# docker-compose healthcheck can call GET /health without
+# adding any application dependency.
 # ------------------------------------------------------------
 FROM mcr.microsoft.com/dotnet/aspnet:8.0
 WORKDIR /app
 
-CMD ["sh", "-c", "echo '[mock-erp] Placeholder container — real build not yet implemented (T-103). Sleeping.' && sleep infinity"]
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=build /app/publish .
+
+ENTRYPOINT ["dotnet", "MockErp.Api.dll"]

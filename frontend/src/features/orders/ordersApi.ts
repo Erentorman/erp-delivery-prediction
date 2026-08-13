@@ -1,6 +1,8 @@
+import type { AxiosResponse } from 'axios';
+import { apiClient } from '../../api/client';
 import type { OrderSummary } from './ordersContracts';
 
-export const ORDERS_ENDPOINT = '/api/orders';
+export const ORDERS_ENDPOINT = '/Orders';
 
 export class OrdersApiError extends Error {
   constructor(message: string, readonly status?: number) {
@@ -22,18 +24,18 @@ function isOrderSummary(value: unknown): value is OrderSummary {
 }
 
 export async function fetchOrders(): Promise<OrderSummary[]> {
-  let response: Response;
+  let response: AxiosResponse;
   try {
-    response = await fetch(ORDERS_ENDPOINT);
+    response = await apiClient.get(ORDERS_ENDPOINT, { validateStatus: () => true });
   } catch {
     throw new OrdersApiError('Unable to reach the orders service.');
   }
 
-  if (!response.ok) {
+  if (response.status < 200 || response.status >= 300) {
     throw new OrdersApiError(`Orders request failed (${response.status}).`, response.status);
   }
 
-  const body: unknown = await response.json().catch(() => null);
+  const body: unknown = response.data;
   if (!Array.isArray(body) || !body.every(isOrderSummary)) {
     throw new OrdersApiError('The orders service returned an unexpected response.');
   }
