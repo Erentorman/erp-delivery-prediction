@@ -35,3 +35,11 @@ tools/erp-seed-converter/generated/
 
 ## AI training dataset preparation — generated output, not committed
 ai-prediction/training/output/
+
+## AI model training (T-907) — ephemeral training-run staging output, not
+## the canonical runtime artifact (that is ai-prediction/model/artifacts/,
+## tracked — populated only via training/promote_artifact.py)
+ai-prediction/training/artifacts/
+
+## Raw ERP source data — never committed (see tools/erp-seed-converter/README.md)
+ai-prediction/data/

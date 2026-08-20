@@ -1,0 +1,14 @@
+{
+  "baseline": {
+    "model_type": "MeanBaselineRegressor",
+    "mae": 1930.2402,
+    "rmse": 2422.3290013490246,
+    "r2": -0.010318565807688529
+  },
+  "xgboost": {
+    "model_type": "XGBRegressor",
+    "mae": 1175.2402001953126,
+    "rmse": 1500.8977680483981,
+    "r2": 0.6121227572975767
+  }
+}
