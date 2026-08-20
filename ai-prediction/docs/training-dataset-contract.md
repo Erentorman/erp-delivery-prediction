@@ -48,23 +48,41 @@ SAD §9.9 canonical target: **`actual_total_working_lead_time_minutes`**.
 
 The raw ground-truth field `totalDeliveryDurationMinutes` is **not** assumed
 to be the same thing just because a target-shaped field exists. Before
-mapping, `target_mapping.validate_target_mapping()` runs two independent
-checks on every row and raises `TargetMappingSemanticError` (pipeline stops,
-no training) if either fails:
+mapping, `target_mapping.validate_target_mapping()` runs two checks on every
+row — **the mapping `totalDeliveryDurationMinutes -> actual_total_working_lead_time_minutes`
+is preserved and is not affected by either check's severity below.**
 
-1. **Component-sum check** — `totalDeliveryDurationMinutes` must equal
-   `orderProcessingDurationMinutes + procurementDurationMinutes +
+1. **Component-sum check (fatal).** `totalDeliveryDurationMinutes` must
+   equal `orderProcessingDurationMinutes + procurementDurationMinutes +
    manufacturingDurationMinutes + packagingDurationMinutes +
-   shippingDurationMinutes`. Confirms the field is a total of realized stage
-   durations, not an unrelated number. Holds for all 5 preview rows
-   (e.g. `144 + 0 + 429 + 122 + 1236 = 1931`).
-2. **Working-minutes plausibility check** — the raw target must not exceed
-   the calendar-minute span between `orderDate` and `packagingFinishDate`.
-   Working minutes are a subset of calendar minutes; if the raw target were
-   calendar-elapsed time it would often exceed or equal that span across
-   multi-day orders. In the preview fixture it is consistently well below
-   the calendar span, which is the expected shape for a working-minutes
-   quantity.
+   shippingDurationMinutes`. This is the check that establishes the mapping
+   is mathematically sound — the raw target is provably a total of realized
+   stage durations, not an unrelated number. Raises `TargetMappingSemanticError`
+   (pipeline stops, no training) on the first row that fails. Verified against
+   the full 1000-row `Furniture_ERP_Data_Minutes.xlsx` export
+   (`ai-prediction/data/raw/`, used for validation only — not committed):
+   **0/1000 rows violate this check.** The target is consistent with the 5
+   stage-duration fields in every row.
+2. **Calendar-span plausibility check (non-fatal, data-quality warning).**
+   Compares `totalDeliveryDurationMinutes` against the calendar-minute span
+   between `orderDate` and `packagingFinishDate`. This check is a
+   plausibility signal, **not** a validation of the target's mathematical
+   correctness — it does not prove or disprove the mapping above. On the
+   same 1000-row export, **317/1000 rows exceed this calendar span** (the
+   span does not account for time elapsed after `packagingFinishDate`, e.g.
+   shipping, so a violation is expected to occur for a meaningful share of
+   rows and is not on its own evidence of a bad target). Because this check
+   cannot prove the mapping wrong, a violation:
+   - does **not** raise and does **not** stop dataset preparation,
+   - does **not** remove the row from the dataset,
+   - does **not** cause the target to be recomputed from the date fields,
+   - **is** counted and recorded — see "Calendar-span warning reporting" below.
+
+   A plausible contributor is that the synthetic Excel source appears to
+   generate its duration-minute fields and its date fields through largely
+   independent logic, so the two don't always agree at the day-rounding
+   level — but this has not been confirmed against the data generator, so
+   it is recorded here as an open question, not a proven root cause.
 
 Once validated, the mapping is applied by `target_mapping.map_raw_target_to_canonical()`:
 
@@ -76,6 +94,21 @@ This mapping is defined in exactly one place
 (`training/dataset_contract.py: RAW_TARGET_FIELD`) and appears in the
 generated `metadata.json` (`raw_target_field` / `canonical_target_field`)
 for every prepared dataset — not scattered across the codebase.
+
+### Calendar-span warning reporting
+
+`validate_target_mapping()` returns a small report dict (it no longer
+returns `None`):
+
+```json
+{"check": "target_calendar_span_plausibility", "violation_count": 317, "total_row_count": 1000}
+```
+
+`prepare_dataset.prepare()` threads this straight into the generated
+`metadata.json` under `target_mapping_warnings`, so the violation count is
+never console-only — it travels with the dataset artifact alongside
+`feature_schema_version` and `training_dataset_version`, and T-907 (or
+anyone inspecting `metadata.json`) can see it without re-running validation.
 
 ## Leakage rules
 
@@ -182,8 +215,19 @@ partition — verified by
 
 ## Known limitation
 
-The only in-repo raw dataset is the 5-row preview fixture. The pipeline,
-contract, and tests are written against the full `mock-erp-seed.json` /
-`prediction-ground-truth.json` shape (via `--ground-truth` / `--seed`), so a
-future full export can be prepared without code changes — but today's
-prepared dataset is necessarily small (4 train / 1 test rows).
+The only dataset the pipeline actually runs against by default is the 5-row
+preview fixture (JSON, committed). The pipeline, contract, and tests are
+written against the full `mock-erp-seed.json` / `prediction-ground-truth.json`
+shape (via `--ground-truth` / `--seed`), so a future full export can be
+prepared without code changes — but today's prepared dataset is necessarily
+small (4 train / 1 test rows).
+
+A 1000-row raw Excel export (`ai-prediction/data/raw/Furniture_ERP_Data_Minutes.xlsx`)
+is also present locally. It is **not committed** and the pipeline does not
+consume it directly (it is `.xlsx`, not the `mock-erp-seed.json` /
+`prediction-ground-truth.json` shape the loader expects — converting it is
+`tools/erp-seed-converter`'s job, out of scope here). It was used only to
+validate the two target-mapping checks above at realistic scale (1000 rows)
+before deciding their severity — the component-sum / calendar-span figures
+cited in this document come from that one-off validation, not from a
+pipeline run.

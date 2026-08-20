@@ -178,7 +178,7 @@ def _is_preview_source(ground_truth_path: Path) -> bool:
 
 def prepare(ground_truth_path: Path, seed_path: Path) -> dict:
     ground_truth = load_ground_truth(ground_truth_path)
-    validate_target_mapping(ground_truth)
+    target_mapping_warnings = validate_target_mapping(ground_truth)
 
     seed_orders = load_seed_orders(seed_path)
     bom_item_counts = load_seed_boms(seed_path)
@@ -210,6 +210,7 @@ def prepare(ground_truth_path: Path, seed_path: Path) -> dict:
             "test_count": len(test_rows),
         },
         "row_count": len(processed_rows),
+        "target_mapping_warnings": target_mapping_warnings,
         "source": {
             "ground_truth_path": str(ground_truth_path),
             "seed_path": str(seed_path),

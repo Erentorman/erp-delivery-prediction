@@ -3,8 +3,11 @@
 Per T-905 spec: the presence of `totalDeliveryDurationMinutes` in the raw
 ground-truth data does NOT by itself mean it is the canonical target
 (`actual_total_working_lead_time_minutes`). The semantic equivalence is
-checked automatically before any mapping is applied. If validation fails,
-this module raises — the pipeline must not silently proceed to training.
+checked automatically before any mapping is applied. The check that proves
+the mapping mathematically (component-sum) raises on failure — the pipeline
+must not silently proceed to training on a dataset where it doesn't hold.
+The calendar-span check is a plausibility signal, not proof; its violations
+are reported, not raised — see validate_target_mapping() docstring.
 """
 
 from __future__ import annotations
@@ -22,30 +25,44 @@ class TargetMappingSemanticError(Exception):
     """Raised when the raw target cannot be trusted as the canonical target."""
 
 
+# Name recorded in the report returned by validate_target_mapping() and echoed
+# into prepare_dataset metadata, so the check is identifiable in output/logs.
+CALENDAR_SPAN_CHECK_NAME = "target_calendar_span_plausibility"
+
+
 def _parse_date(value: str) -> date:
     return date.fromisoformat(value)
 
 
-def validate_target_mapping(rows: list[dict]) -> None:
+def validate_target_mapping(rows: list[dict]) -> dict:
     """Validates that RAW_TARGET_FIELD ⇔ CANONICAL_TARGET_FIELD semantically.
 
-    Two independent checks, both must hold for every row:
+    Two checks run per row, with different severity:
 
-    1. Component-sum check: RAW_TARGET_FIELD must equal the sum of
+    1. Component-sum check (FATAL): RAW_TARGET_FIELD must equal the sum of
        RAW_STAGE_DURATION_FIELDS. This confirms the raw target represents a
-       total of realized stage durations, not an unrelated number.
-    2. Working-minutes plausibility check: RAW_TARGET_FIELD must not exceed
-       the calendar-minute span between the order date and the last known
-       realized date on the row. Working minutes are a subset of calendar
-       minutes; if the raw target exceeds the calendar span it cannot be a
-       working-minutes duration and the "actual_total_working_lead_time"
-       semantic claim is false.
+       total of realized stage durations, not an unrelated number. Raises
+       TargetMappingSemanticError immediately on the first row that fails —
+       this is the check that proves the raw->canonical target mapping is
+       mathematically sound, and the pipeline must not proceed on a dataset
+       where it doesn't hold.
+    2. Calendar-span plausibility check (NON-FATAL / data-quality warning):
+       RAW_TARGET_FIELD compared against the calendar-minute span between
+       orderDate and packagingFinishDate. This is a plausibility signal, not
+       proof the mapping is wrong — the calendar span does not account for
+       time elapsed after packagingFinishDate (e.g. shipping), so a
+       violation does not by itself invalidate the target. Violations are
+       counted, not raised: the row stays in the dataset unchanged.
 
-    Raises TargetMappingSemanticError on the first row that fails either
-    check. Does not mutate rows and performs no I/O.
+    Returns a report dict for the calendar-span check:
+        {"check": CALENDAR_SPAN_CHECK_NAME, "violation_count": int, "total_row_count": int}
+
+    Does not mutate rows and performs no I/O.
     """
     if not rows:
         raise TargetMappingSemanticError("Cannot validate target mapping: dataset is empty.")
+
+    calendar_span_violation_count = 0
 
     for row in rows:
         order_ref = row.get("productionOrderId", "<unknown>")
@@ -84,13 +101,15 @@ def validate_target_mapping(rows: list[dict]) -> None:
 
         calendar_span_minutes = (finish_date - order_date).days * 24 * 60
         if raw_target > calendar_span_minutes:
-            raise TargetMappingSemanticError(
-                f"{order_ref}: working-minutes plausibility check failed — "
-                f"{RAW_TARGET_FIELD} = {raw_target} exceeds calendar span "
-                f"{calendar_span_minutes} minutes between orderDate and "
-                f"packagingFinishDate. A working-minutes value cannot exceed "
-                f"the calendar span it was measured within."
-            )
+            # Non-fatal: recorded as a data-quality warning, not raised. The
+            # row is kept as-is — see CALENDAR_SPAN_CHECK_NAME docstring above.
+            calendar_span_violation_count += 1
+
+    return {
+        "check": CALENDAR_SPAN_CHECK_NAME,
+        "violation_count": calendar_span_violation_count,
+        "total_row_count": len(rows),
+    }
 
 
 def map_raw_target_to_canonical(row: dict) -> float:

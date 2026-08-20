@@ -128,10 +128,24 @@ class LoaderValidationTests(unittest.TestCase):
             dataset_loader.analyze_nulls(rows)
 
 
+def _blow_up_calendar_span(row: dict) -> dict:
+    """Mutates a valid row so its target exceeds the orderDate->packagingFinishDate
+    calendar span, while keeping the component-sum identity intact (adds the
+    delta to shippingDurationMinutes so sum(stages) still equals the target)."""
+    blown_up = 10 ** 7
+    delta = blown_up - row[RAW_TARGET_FIELD]
+    row["shippingDurationMinutes"] += delta
+    row[RAW_TARGET_FIELD] = blown_up
+    return row
+
+
 class TargetMappingTests(unittest.TestCase):
     def test_target_mapping_success(self):
         rows = _valid_dataset()
-        target_mapping.validate_target_mapping(rows)  # no exception
+        report = target_mapping.validate_target_mapping(rows)  # no exception
+        self.assertEqual(report["violation_count"], 0)
+        self.assertEqual(report["total_row_count"], len(rows))
+        self.assertEqual(report["check"], target_mapping.CALENDAR_SPAN_CHECK_NAME)
         self.assertEqual(target_mapping.map_raw_target_to_canonical(rows[0]), 1931.0)
 
     def test_target_mapping_semantic_validation_failure_component_sum(self):
@@ -140,16 +154,32 @@ class TargetMappingTests(unittest.TestCase):
         with self.assertRaises(TargetMappingSemanticError):
             target_mapping.validate_target_mapping(rows)
 
-    def test_target_mapping_semantic_validation_failure_calendar_span(self):
+    def test_calendar_span_violation_does_not_raise(self):
         rows = _valid_dataset(1)
-        row = rows[0]
-        # Force the raw target to exceed the calendar span between order and finish dates.
-        blown_up = 10 ** 7
-        delta = blown_up - row[RAW_TARGET_FIELD]
-        row["shippingDurationMinutes"] += delta
-        row[RAW_TARGET_FIELD] = blown_up
-        with self.assertRaises(TargetMappingSemanticError):
-            target_mapping.validate_target_mapping(rows)
+        _blow_up_calendar_span(rows[0])
+        report = target_mapping.validate_target_mapping(rows)  # no exception
+        self.assertEqual(report["violation_count"], 1)
+        self.assertEqual(report["total_row_count"], 1)
+
+    def test_calendar_span_violation_row_stays_in_dataset(self):
+        rows = _valid_dataset(2)
+        _blow_up_calendar_span(rows[0])
+        report = target_mapping.validate_target_mapping(rows)
+        self.assertEqual(report["violation_count"], 1)
+        # The violating row is neither dropped nor mutated beyond the test's
+        # own setup — it is still present and still maps to its raw target.
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(
+            target_mapping.map_raw_target_to_canonical(rows[0]), 10 ** 7
+        )
+
+    def test_calendar_span_warning_counter_matches_violations(self):
+        rows = _valid_dataset(5)
+        _blow_up_calendar_span(rows[1])
+        _blow_up_calendar_span(rows[3])
+        report = target_mapping.validate_target_mapping(rows)
+        self.assertEqual(report["violation_count"], 2)
+        self.assertEqual(report["total_row_count"], 5)
 
     def test_empty_dataset_raises(self):
         with self.assertRaises(TargetMappingSemanticError):
@@ -230,6 +260,35 @@ class PrepareDatasetPipelineTests(unittest.TestCase):
         ground_truth = _valid_dataset(1)
         with self.assertRaises(LeakageGuardError):
             prepare_dataset.build_canonical_rows(ground_truth, seed_orders={}, bom_item_counts={})
+
+    def test_prepare_metadata_includes_target_mapping_warnings_and_keeps_violating_row(self):
+        import json
+        import tempfile
+
+        ground_truth = _valid_dataset(4)
+        _blow_up_calendar_span(ground_truth[2])  # one row violates calendar-span plausibility
+        seed = {
+            "orders": [
+                {"id": o["id"], "productId": o["productId"], "quantity": o["quantity"]}
+                for o in _seed_orders(4).values()
+            ],
+            "boms": [{"productId": "P002", "lines": [{}, {}, {}]}],
+        }
+
+        with tempfile.TemporaryDirectory() as tmp:
+            gt_path = Path(tmp) / "prediction-ground-truth.json"
+            seed_path = Path(tmp) / "mock-erp-seed.json"
+            gt_path.write_text(json.dumps(ground_truth), encoding="utf-8")
+            seed_path.write_text(json.dumps(seed), encoding="utf-8")
+
+            result = prepare_dataset.prepare(gt_path, seed_path)
+
+        warnings = result["metadata"]["target_mapping_warnings"]
+        self.assertEqual(warnings["check"], target_mapping.CALENDAR_SPAN_CHECK_NAME)
+        self.assertEqual(warnings["violation_count"], 1)
+        self.assertEqual(warnings["total_row_count"], 4)
+        # The violating row was not dropped: total prepared rows still equals input rows.
+        self.assertEqual(len(result["train"]) + len(result["test"]), 4)
 
     def test_prepare_metadata_marks_default_fixture_as_preview(self):
         result = prepare_dataset.prepare(
