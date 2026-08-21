@@ -123,8 +123,11 @@ services:
   # ----------------------------------------------------------
   # ai-prediction — Python + FastAPI AI Prediction Service
   # NOT publicly exposed.
-  # Exposes /health endpoint on internal port 8000.
-  # /predict endpoint will be added once T-105 is completed.
+  # Exposes /health and /predict on internal port 8000, serving the
+  # canonical xgb-v0.1 artifact baked into the image (T-909). Model/feature
+  # schema/training-dataset versions are read from the loaded artifact's
+  # model-metadata.json, not from env vars — there is no second hardcoded
+  # version source.
   # ----------------------------------------------------------
   ai-prediction:
     build:
@@ -132,15 +135,10 @@ services:
       dockerfile: Dockerfile
     environment:
       - PORT=${AI_PORT:-8000}
-      - MODEL_PATH=${AI_MODEL_PATH:-/app/models/model.pkl}
-      - FEATURE_SCHEMA_VERSION=${AI_FEATURE_SCHEMA_VERSION:-1}
-      - MODEL_VERSION=${AI_MODEL_VERSION:-1}
-      - TRAINING_DATASET_VERSION=${AI_TRAINING_DATASET_VERSION:-1}
+      - AI_MODEL_ARTIFACT_DIR=${AI_MODEL_ARTIFACT_DIR:-/app/model/artifacts/xgb-v0.1}
     networks:
       - erp-net
     # No "ports:" block → not reachable from the host
-    # TODO (T-105): replace placeholder command once ai-prediction
-    #               Dockerfile and model artifact are finalized.
     restart: unless-stopped
 
 # ============================================================

@@ -1,0 +1,3 @@
+# Test-only dependencies. NOT installed into the FastAPI runtime image —
+# Dockerfile installs requirements.txt only.
+httpx>=0.27
