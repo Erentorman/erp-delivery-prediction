@@ -5,6 +5,7 @@ using App.Infrastructure.Clock;
 using App.Infrastructure.Security;
 using App.Infrastructure.Shipping;
 using App.Integration.MockErp;
+using App.Integration.AiPrediction;
 using App.Persistence;
 using App.Persistence.IntegrationLogging;
 using App.Api.Configuration;
@@ -39,6 +40,7 @@ builder.Services.Configure<WhatIfShippingOptions>(
 builder.Services.AddShippingLookup();
 builder.Services.AddSystemClock();
 builder.Services.AddMockErpDataProvider(builder.Configuration);
+builder.Services.AddAiPredictionClient(builder.Configuration);
 builder.Services.AddErpBatchReader();
 builder.Services.AddPredictionServices();
 builder.Services.AddDemoWorkOrderSupport(builder.Configuration);
