@@ -67,6 +67,19 @@ public class PredictionContextBuilderTests
     }
 
     [Fact]
+    public void Build_PreservesPlanningClassificationForAiFeatures()
+    {
+        var snapshot = CreateValidSnapshot() with
+        {
+            Products = [new ProductReadDto("PROD-1", "CATEGORY-A", "pcs")]
+        };
+
+        var (_, context) = _builder.Build(snapshot);
+
+        Assert.Equal("CATEGORY-A", Assert.Single(context!.MaterialSnapshot.Products).PlanningClassification);
+    }
+
+    [Fact]
     public void Build_WithEmptyBomItems_ReturnsInsufficientData()
     {
         var snapshot = CreateValidSnapshot();

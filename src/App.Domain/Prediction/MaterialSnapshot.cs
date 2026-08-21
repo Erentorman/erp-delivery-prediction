@@ -1,6 +1,9 @@
 namespace App.Domain.Prediction;
 
-public sealed record MaterialProduct(string ProductReference, string UnitOfMeasure);
+public sealed record MaterialProduct(
+    string ProductReference,
+    string UnitOfMeasure,
+    string? PlanningClassification = null);
 
 public sealed record MaterialBomItem(string ParentProductReference, string ComponentProductReference, decimal RequiredQuantity);
 

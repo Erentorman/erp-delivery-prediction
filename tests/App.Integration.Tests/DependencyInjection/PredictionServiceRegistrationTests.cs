@@ -30,7 +30,9 @@ public sealed class PredictionServiceRegistrationTests
             });
 
         var service = serviceProvider.GetRequiredService<IWhatIfPredictionCalculationService>();
+        var aiFeatureBuilder = serviceProvider.GetRequiredService<IAiFeatureBuilder>();
 
         Assert.IsType<WhatIfPredictionCalculationService>(service);
+        Assert.IsType<AiFeatureBuilder>(aiFeatureBuilder);
     }
 }
