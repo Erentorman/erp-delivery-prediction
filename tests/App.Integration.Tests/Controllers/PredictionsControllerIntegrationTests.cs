@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using App.Api.Controllers;
 using App.Application.Common;
 using App.Application.Prediction;
+using App.Application.Contracts.Prediction;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -28,16 +29,12 @@ public class PredictionsControllerIntegrationTests : IClassFixture<WebApplicatio
             {
                 var mockService = new Mock<IPredictionCalculationService>();
                 mockService.Setup(s => s.CalculateAsync("SO-1001", It.IsAny<CancellationToken>()))
-                    .ReturnsAsync(Result<RuleBasedPredictionResult>.Success(new RuleBasedPredictionResult(
-                        "SO-1001",
-                        DateTimeOffset.UtcNow,
-                        DateTimeOffset.UtcNow.AddDays(1),
-                        DateTimeOffset.UtcNow.AddDays(2),
-                        Array.Empty<string>(),
-                        Array.Empty<string>(),
-                        Array.Empty<App.Application.Prediction.MaterialShortage>(),
-                        Array.Empty<App.Application.Prediction.TimelineItem>()
-                    )));
+                    .ReturnsAsync(Result<PredictionResponse>.Success(PredictionResponse.From(
+                        new PredictionAggregateResult("SO-1001",
+                            new(PredictionProviderType.RuleBased, AiProviderStatus.Success, 60),
+                            new(PredictionProviderType.Ai, AiProviderStatus.Success, 60),
+                            new(FinalPredictionStatus.HybridCalculated, PredictionFallbackReason.None,
+                                60, "WeightedAverage", .6m, .4m, 0, 0)))));
                 
                 var descriptor = services.SingleOrDefault(d => d.ServiceType == typeof(IPredictionCalculationService));
                 if (descriptor != null) services.Remove(descriptor);

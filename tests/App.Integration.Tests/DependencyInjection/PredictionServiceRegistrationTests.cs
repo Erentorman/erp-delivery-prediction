@@ -20,6 +20,9 @@ public sealed class PredictionServiceRegistrationTests
         services.AddSingleton(Mock.Of<IWhatIfShippingReferenceResolver>());
         services.AddSingleton(Mock.Of<IShippingRouteLookupService>());
         services.AddSingleton(new MvpAssumptionsOptions());
+        services.AddTransient(_ => new AiPredictionProvider(
+            Mock.Of<IAiFeatureBuilder>(), Mock.Of<IAiPredictionClient>()));
+        services.AddSingleton(Mock.Of<IPredictionRepository>());
         services.AddPredictionServices();
 
         using var serviceProvider = services.BuildServiceProvider(

@@ -89,6 +89,44 @@ public sealed class AiPredictionProviderTests
         client.VerifyAll();
     }
 
+    [Theory]
+    [InlineData(double.NaN)]
+    [InlineData(double.PositiveInfinity)]
+    [InlineData(double.NegativeInfinity)]
+    public async Task CommonProvider_NonFiniteSuccessValueBecomesDefensivelyMissing(double value)
+    {
+        var builder = Mock.Of<IAiFeatureBuilder>(x => x.Build(It.IsAny<PredictionContext>()) == Features());
+        var clientResult = new AiPredictionResult(AiProviderStatus.Success, value, null, null, null, null);
+        var client = Mock.Of<IAiPredictionClient>(x => x.GetPredictionAsync(
+            It.IsAny<AiPredictionRequest>(), It.IsAny<CancellationToken>()) ==
+            Task.FromResult(clientResult));
+        IPredictionProvider provider = new AiPredictionProvider(builder, client);
+
+        var result = await provider.PredictAsync(Context());
+
+        Assert.Equal(AiProviderStatus.Success, result.Status);
+        Assert.Null(result.WorkingLeadTimeMinutes);
+        Assert.NotNull(result.FeaturePayload);
+    }
+
+    [Fact]
+    public async Task CommonProvider_BuildsIndependentFeaturesOnceAndPropagatesCancellation()
+    {
+        using var source = new CancellationTokenSource();
+        var builder = new Mock<IAiFeatureBuilder>();
+        builder.Setup(x => x.Build(It.IsAny<PredictionContext>())).Returns(Features());
+        var client = new Mock<IAiPredictionClient>();
+        client.Setup(x => x.GetPredictionAsync(It.IsAny<AiPredictionRequest>(), source.Token))
+            .ReturnsAsync(new AiPredictionResult(AiProviderStatus.Success, 100, "xgb-v0.1", "1", "synthetic-v1"));
+        IPredictionProvider provider = new AiPredictionProvider(builder.Object, client.Object);
+
+        var result = await provider.PredictAsync(Context(), source.Token);
+
+        Assert.Equal(100m, result.WorkingLeadTimeMinutes);
+        builder.Verify(x => x.Build(It.IsAny<PredictionContext>()), Times.Once);
+        client.VerifyAll();
+    }
+
     private static AiFeaturePayload Features() => new(
         1, "P001", null, 2m, 3, 0, 0m, null, 1, 30,
         null, null, null, null, null, null, null);

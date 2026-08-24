@@ -42,9 +42,11 @@ public sealed class PredictionContractStructureTests
     public void PredictionResponse_HasNoIntegrationDependenciesAndIsRequestIndependent()
     {
         var constructor = Assert.Single(typeof(PredictionResponse).GetConstructors());
-        var parameter = Assert.Single(constructor.GetParameters());
-
-        Assert.Equal(typeof(long), parameter.ParameterType);
+        var parameters = constructor.GetParameters();
+        Assert.Contains(parameters, p => p.Name == "RuleBasedPrediction" && p.ParameterType == typeof(ProviderPredictionResponse));
+        Assert.Contains(parameters, p => p.Name == "AiPrediction" && p.ParameterType == typeof(ProviderPredictionResponse));
+        Assert.Contains(parameters, p => p.Name == "FinalPrediction" && p.ParameterType == typeof(FinalPredictionResponse));
+        Assert.DoesNotContain(typeof(PredictionResponse).GetProperties(), p => p.Name.Contains("FeaturePayload"));
         Assert.DoesNotContain(
             typeof(PredictionResponse).GetProperties(),
             property => property.PropertyType.Namespace?.StartsWith("App.Integration", StringComparison.Ordinal) == true);
