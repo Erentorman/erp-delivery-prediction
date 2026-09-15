@@ -32,3 +32,6 @@ tools/erp-seed-converter/*.xlsx
 tools/erp-seed-converter/*.xls
 tools/erp-seed-converter/output/
 tools/erp-seed-converter/generated/
+
+## AI training dataset preparation — generated output, not committed
+ai-prediction/training/output/
