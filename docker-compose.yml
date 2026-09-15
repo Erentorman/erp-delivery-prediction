@@ -38,7 +38,8 @@ services:
     networks:
       - erp-net
     depends_on:
-      - api
+      api:
+        condition: service_healthy
     restart: unless-stopped
 
   # ----------------------------------------------------------
@@ -60,21 +61,37 @@ services:
       - Jwt__Secret=${JWT_SECRET:-change_me_jwt_secret_at_least_32_characters_long}
       - Jwt__Issuer=${JWT_ISSUER:-erp-delivery-prediction}
       - Jwt__Audience=${JWT_AUDIENCE:-erp-delivery-prediction-clients}
-      - MockErp__BaseUrl=${MOCK_ERP_BASE_URL:-http://mock-erp:8080}
+      # Config key is MockErp:BaseAddress (see MockErpOptions.cs) — the
+      # env var name must match exactly for IConfiguration binding.
+      - MockErp__BaseAddress=${MOCK_ERP_BASE_URL:-http://mock-erp:8080}
       - AiPrediction__BaseUrl=${AI_PREDICTION_BASE_URL:-http://ai-prediction:8000}
       - AiPrediction__TimeoutMs=${AI_PREDICTION_TIMEOUT_MS:-3000}
       - Cors__AllowedOrigin=${CORS_ALLOWED_ORIGIN:-http://localhost:3000}
+      # T-388 opt-in demo mechanism: injects a synthetic, clearly-labelled
+      # DEMO-* work order/routing when the ERP snapshot has none, so local/demo
+      # Docker environments can produce a prediction despite mock-erp-seed.json
+      # having zero real WorkOrders. Never overrides real ERP WorkOrder data.
+      - Demo__EnableSyntheticWorkOrder=${DEMO_ENABLE_SYNTHETIC_WORK_ORDER:-true}
     networks:
       - erp-net
     depends_on:
       postgres:
         condition: service_healthy
       mock-erp:
-        condition: service_started
+        condition: service_healthy
+      # api has no runtime code path that calls ai-prediction yet
+      # (AddPredictionServices only wires Rule-Based + CPM); keep this
+      # as service_started so a future AI integration doesn't have to
+      # add it, but don't gate api startup on ai-prediction health for
+      # a dependency that doesn't exist today.
       ai-prediction:
         condition: service_started
-    # TODO (T-103): replace placeholder command once App.Api Dockerfile
-    #               produces a runnable image.
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
     restart: unless-stopped
 
   # ----------------------------------------------------------
@@ -116,8 +133,12 @@ services:
     networks:
       - erp-net
     # No "ports:" block → not reachable from the host
-    # TODO (T-103): replace placeholder command once MockErp.Api Dockerfile
-    #               produces a runnable image.
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
     restart: unless-stopped
 
   # ----------------------------------------------------------
@@ -139,17 +160,66 @@ services:
     networks:
       - erp-net
     # No "ports:" block → not reachable from the host
-    # TODO (T-105): replace placeholder command once ai-prediction
-    #               Dockerfile and model artifact are finalized.
+    # Healthcheck is informational (visible in `docker compose ps`) only;
+    # api does not depend on this service's health — see api's depends_on.
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     restart: unless-stopped
+
+  # ----------------------------------------------------------
+  # ready — prints a clear, copy/paste-able "stack is ready" banner
+  # once frontend and api are up, then exits. No other role: lets a
+  # plain `docker compose up` be the single command a developer needs
+  # to discover where the app is running, without a wrapper script.
+  # ----------------------------------------------------------
+  ready:
+    image: busybox:1.36
+    depends_on:
+      api:
+        condition: service_healthy
+      frontend:
+        condition: service_started
+    command:
+      - sh
+      - -c
+      - >
+        echo "================================================" &&
+        echo "ERP Delivery Prediction is ready" &&
+        echo "" &&
+        echo "Frontend: http://localhost:${FRONTEND_PORT:-3000}" &&
+        echo "API:      http://localhost:${API_PORT:-5000}" &&
+        echo "Swagger:  http://localhost:${API_PORT:-5000}/swagger" &&
+        echo "================================================"
 
 # ============================================================
 # Networks
+#
+# T-104 originally set `internal: true` to keep erp-net fully
+# isolated from outbound traffic. That setting was changed for
+# local development (Docker startup/optimization task) because it
+# also blocks host -> container access on *published* ports:
+# verified empirically — a container on an `internal: true` bridge
+# network returns connection-refused on its published port from the
+# host, while the same container on a normal bridge network responds
+# normally. Since frontend/api must be reachable from the host
+# browser (docker compose up, no manual `dotnet run`/`npm run dev`),
+# `internal: true` is incompatible with this task's goal and has been
+# removed.
+#
+# Trade-off: postgres, mock-erp and ai-prediction now also have
+# outbound internet access (they did not before). None of them
+# currently need it, but a single flat bridge network is the
+# simplest structure for local dev; a split public/private network
+# is not introduced unless a real security or connectivity problem
+# is found with this single-network setup.
 # ============================================================
 networks:
   erp-net:
     driver: bridge
-    internal: true
 
 # ============================================================
 # Volumes

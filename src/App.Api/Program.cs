@@ -24,6 +24,21 @@ builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddHealthChecks();
+
+// Cors:AllowedOrigin lets the browser-served frontend call this API
+// cross-origin (different host port under Docker Compose / local dev).
+var corsAllowedOrigin = builder.Configuration["Cors:AllowedOrigin"];
+if (!string.IsNullOrWhiteSpace(corsAllowedOrigin))
+{
+    builder.Services.AddCors(options =>
+    {
+        options.AddPolicy("Frontend", policy =>
+            policy.WithOrigins(corsAllowedOrigin)
+                .AllowAnyHeader()
+                .AllowAnyMethod());
+    });
+}
 
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
@@ -57,6 +72,17 @@ builder.Services.AddMvpAssumptionsOptions(builder.Configuration);
 
 var app = builder.Build();
 
+// SAD §14.3: EF Core migrations are applied automatically at api startup
+// so `docker compose up` reaches a usable state in a single command.
+// Skipped under the "Testing" host environment: WebApplicationFactory-based
+// tests boot the full pipeline against a dummy, unreachable connection
+// string by design and never exercise persistence.
+if (!app.Environment.IsEnvironment("Testing"))
+{
+    using var migrationScope = app.Services.CreateScope();
+    migrationScope.ServiceProvider.GetRequiredService<AppDbContext>().Database.Migrate();
+}
+
 // Run CategoryAFieldGuard
 var options = app.Services.GetRequiredService<IOptions<MvpAssumptionsOptions>>().Value;
 var jsonPath = Path.Combine(builder.Environment.ContentRootPath, "mvp-assumptions.json");
@@ -84,9 +110,19 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+if (!string.IsNullOrWhiteSpace(corsAllowedOrigin))
+{
+    app.UseCors("Frontend");
+}
+
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// Docker/Compose healthcheck target. Explicitly anonymous so it never
+// depends on JWT/auth configuration, even if a global auth policy is
+// introduced later.
+app.MapHealthChecks("/health").AllowAnonymous();
 
 app.Run();

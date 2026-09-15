@@ -1,0 +1,33 @@
+# ============================================================
+# Root Docker build context excludes (used by api & mock-erp,
+# context: "." in docker-compose.yml)
+# ============================================================
+
+.git
+.gitignore
+
+# .NET build artifacts — rebuilt inside the image
+**/bin/
+**/obj/
+
+# Frontend — not needed by api/mock-erp builds
+frontend/node_modules/
+frontend/dist/
+
+# AI service — not needed by api/mock-erp builds
+ai-prediction/.venv/
+ai-prediction/__pycache__/
+**/__pycache__/
+
+# Docs, tests, tooling — not needed at build time
+docs/
+tests/
+tools/
+
+# IDE / OS
+.vs/
+.idea/
+**/.DS_Store
+
+# Env / secrets
+.env
