@@ -9,6 +9,7 @@ public static class ApplicationPredictionServiceCollectionExtensions
         this IServiceCollection services)
     {
         services.AddTransient<PredictionContextBuilder>();
+        services.AddTransient<IAiFeatureBuilder, AiFeatureBuilder>();
 
         services.AddTransient<IPredictionContextBuilder>(
             serviceProvider =>

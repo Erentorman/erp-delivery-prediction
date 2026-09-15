@@ -38,7 +38,7 @@ public sealed class PredictionContextBuilder : IPredictionContextBuilder
 
         // Map MaterialSnapshot
         var products = snapshot.Products
-            .Select(p => new MaterialProduct(p.ProductReference, p.UnitOfMeasure))
+            .Select(p => new MaterialProduct(p.ProductReference, p.UnitOfMeasure, p.PlanningClassification))
             .ToList();
 
         var bomItems = snapshot.BomItems
