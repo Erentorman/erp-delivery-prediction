@@ -56,6 +56,10 @@ public class PredictionProviderResultConfiguration : IEntityTypeConfiguration<Pr
             .HasColumnName("warnings")
             .HasColumnType("jsonb");
 
+        builder.Property(p => p.DurationMs)
+            .HasColumnName("duration_ms")
+            .IsRequired();
+
         builder.Property(p => p.CreatedAt)
             .HasColumnName("created_at")
             .HasColumnType("timestamptz")

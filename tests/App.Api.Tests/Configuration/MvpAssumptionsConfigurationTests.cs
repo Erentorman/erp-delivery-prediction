@@ -22,12 +22,18 @@ public class MvpAssumptionsConfigurationTests
         Assert.Equal(MvpAssumptionsOptions.SectionName, rootProperties[0].Name);
 
         var groups = rootProperties[0].Value.EnumerateObject().ToArray();
-        Assert.Equal(new[] { "workingCalendar", "procurement", "shipping" }, groups.Select(group => group.Name));
+        Assert.Equal(new[] { "workingCalendar", "procurement", "shipping", "hybridPrediction" }, groups.Select(group => group.Name));
         AssertSingleProperty(groups[0].Value, "minutesPerDay", JsonValueKind.Number);
         AssertSingleProperty(groups[1].Value, "fallbackDurationMinutes", JsonValueKind.Number);
         AssertSingleProperty(groups[2].Value, "fallbackDurationMinutes", JsonValueKind.Null);
         Assert.Equal(480, groups[0].Value.GetProperty("minutesPerDay").GetInt64());
         Assert.Equal(960, groups[1].Value.GetProperty("fallbackDurationMinutes").GetInt64());
+        var hybrid = groups[3].Value;
+        Assert.Equal(.60m, hybrid.GetProperty("ruleBasedWeight").GetDecimal());
+        Assert.Equal(.40m, hybrid.GetProperty("aiWeight").GetDecimal());
+        Assert.Equal(50m, hybrid.GetProperty("aiVarianceThresholdPercent").GetDecimal());
+        Assert.Equal(960, hybrid.GetProperty("aiVarianceThresholdWorkingMinutes").GetInt64());
+        Assert.Equal(JsonValueKind.Null, hybrid.GetProperty("aiTechnicalUpperBoundWorkingMinutes").ValueKind);
     }
 
     [Fact]
@@ -74,6 +80,11 @@ public class MvpAssumptionsConfigurationTests
         Assert.Equal(480, options.WorkingCalendar.MinutesPerDay);
         Assert.Equal(960, options.Procurement.FallbackDurationMinutes);
         Assert.Null(options.Shipping.FallbackDurationMinutes);
+        Assert.Equal(.60m, options.HybridPrediction.RuleBasedWeight);
+        Assert.Equal(.40m, options.HybridPrediction.AiWeight);
+        Assert.Equal(50m, options.HybridPrediction.AiVarianceThresholdPercent);
+        Assert.Equal(960, options.HybridPrediction.AiVarianceThresholdWorkingMinutes);
+        Assert.Null(options.HybridPrediction.AiTechnicalUpperBoundWorkingMinutes);
     }
 
     [Theory]

@@ -25,6 +25,41 @@ public sealed class PredictionRepository : IPredictionRepository
         _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
     }
 
+    public async Task SaveAsync(PredictionAggregateResult result, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(result);
+
+        var final = result.FinalPrediction;
+        var calculatedAt = DateTime.UtcNow;
+        var entity = new PredictionResult
+        {
+            ErpOrderRef = result.OrderReference,
+            IsSimulation = false,
+            Status = final.Status is FinalPredictionStatus.HybridCalculated or FinalPredictionStatus.RuleBasedFallback
+                ? CalculatedStatus
+                : "InsufficientData",
+            DataSufficiencyLevel = FullDataSufficiency,
+            FinalStatus = final.Status.ToString(),
+            FallbackReason = final.FallbackReason.ToString(),
+            CombinationStrategy = final.CombinationStrategy,
+            RuleBasedWeight = final.RuleBasedWeight,
+            AiWeight = final.AiWeight,
+            FinalWorkingLeadTimeMinutes = final.WorkingLeadTimeMinutes,
+            AbsoluteDifferenceMinutes = final.AbsoluteDifferenceMinutes,
+            RelativeDifferencePercent = final.RelativeDifferencePercent,
+            ProductionStart = final.EstimatedStart?.UtcDateTime,
+            ProductionEnd = final.EstimatedEnd?.UtcDateTime,
+            ShipDate = final.EstimatedEnd?.UtcDateTime,
+            DeliveryDate = final.EstimatedDelivery?.UtcDateTime,
+            CalculatedAt = calculatedAt
+        };
+
+        entity.ProviderResults.Add(Map(result.RuleBasedPrediction, entity, calculatedAt));
+        entity.ProviderResults.Add(Map(result.AiPrediction, entity, calculatedAt));
+        _dbContext.PredictionResults.Add(entity);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+    }
+
     public async Task SaveAsync(PredictionPersistenceRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
@@ -63,7 +98,7 @@ public sealed class PredictionRepository : IPredictionRepository
             CalculatedAt = calculatedAt
         };
 
-        var providerResult = new PredictionProviderResult
+        var providerResult = new App.Domain.Entities.PredictionProviderResult
         {
             PredictionResult = predictionResult,
             ProviderType = RuleBasedProviderType,
@@ -179,4 +214,29 @@ public sealed class PredictionRepository : IPredictionRepository
         => isSimulation && simulationInputSummary is not null
             ? JsonSerializer.Deserialize<WhatIfSimulationInputSummary>(simulationInputSummary, JsonOptions)
             : null;
+
+    private static App.Domain.Entities.PredictionProviderResult Map(
+        App.Application.Prediction.PredictionProviderResult value,
+        PredictionResult owner,
+        DateTime calculatedAt) => new()
+    {
+        PredictionResult = owner,
+        ProviderType = value.ProviderType.ToString(),
+        ProviderStatus = value.Status.ToString(),
+        WorkingLeadTimeMinutes = value.WorkingLeadTimeMinutes is decimal minutes
+            ? checked((long)Math.Round(minutes, MidpointRounding.AwayFromZero))
+            : null,
+        EstimatedDeliveryDate = value.RuleBasedPrediction?.EstimatedDelivery.UtcDateTime,
+        ModelVersion = value.ModelVersion,
+        FeatureSchemaVersion = value.FeatureSchemaVersion,
+        TrainingDatasetVersion = value.TrainingDatasetVersion,
+        FeaturePayload = value.ProviderType == PredictionProviderType.Ai && value.FeaturePayload is not null
+            ? JsonSerializer.Serialize(value.FeaturePayload, JsonOptions)
+            : null,
+        Warnings = value.Warnings is { Count: > 0 }
+            ? JsonSerializer.Serialize(value.Warnings, JsonOptions)
+            : null,
+        DurationMs = checked((int)Math.Min(value.DurationMs, int.MaxValue)),
+        CreatedAt = calculatedAt
+    };
 }

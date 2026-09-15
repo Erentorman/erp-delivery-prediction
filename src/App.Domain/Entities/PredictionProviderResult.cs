@@ -9,13 +9,14 @@ public class PredictionProviderResult
     public long? WorkingLeadTimeMinutes { get; set; }
     public DateTime? EstimatedDeliveryDate { get; set; }
 
-    // Only populated for the (not-yet-implemented) Ai provider row.
+    // Only populated for the AI provider row.
     public string? ModelVersion { get; set; }
     public string? FeatureSchemaVersion { get; set; }
     public string? TrainingDatasetVersion { get; set; }
     public string? FeaturePayload { get; set; }
 
     public string? Warnings { get; set; }
+    public int DurationMs { get; set; }
     public DateTime CreatedAt { get; set; }
 
     public PredictionResult PredictionResult { get; set; } = null!;

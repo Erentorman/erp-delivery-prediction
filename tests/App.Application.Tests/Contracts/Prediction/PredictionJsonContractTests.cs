@@ -1,5 +1,6 @@
 using System.Text.Json;
 using App.Application.Contracts.Prediction;
+using App.Application.Prediction;
 
 namespace App.Application.Tests.Contracts.Prediction;
 
@@ -94,11 +95,16 @@ public sealed class PredictionJsonContractTests
     [Fact]
     public void PredictionResponse_UsesExpectedCamelCaseShape()
     {
-        var json = JsonSerializer.Serialize(new PredictionResponse(1_440), JsonOptions);
+        var aggregate = new PredictionAggregateResult("ORD-1",
+            new(PredictionProviderType.RuleBased, AiProviderStatus.Success, 1_440),
+            new(PredictionProviderType.Ai, AiProviderStatus.Timeout),
+            new(FinalPredictionStatus.RuleBasedFallback, PredictionFallbackReason.AiPredictionTimeout,
+                1_440, "RuleBasedOnly", 1m, 0m, null, null));
+        var json = JsonSerializer.Serialize(PredictionResponse.From(aggregate), JsonOptions);
         using var document = JsonDocument.Parse(json);
-
-        var property = Assert.Single(document.RootElement.EnumerateObject());
-        Assert.Equal("totalDurationMinutes", property.Name);
-        Assert.Equal(1_440, property.Value.GetInt64());
+        Assert.True(document.RootElement.TryGetProperty("ruleBasedPrediction", out _));
+        Assert.True(document.RootElement.TryGetProperty("aiPrediction", out _));
+        Assert.True(document.RootElement.TryGetProperty("finalPrediction", out _));
+        Assert.DoesNotContain("featurePayload", json, StringComparison.OrdinalIgnoreCase);
     }
 }

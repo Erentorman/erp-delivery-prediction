@@ -67,7 +67,7 @@ public class PredictionsControllerTests
         var request = new CalculatePredictionRequest("ORD-1");
         var error = new Error("Test.Error", "Test message", ErrorType.Validation);
         _serviceMock.Setup(s => s.CalculateAsync("ORD-1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result<RuleBasedPredictionResult>.Failure(error));
+            .ReturnsAsync(Result<PredictionResponse>.Failure(error));
 
         var result = await _controller.Calculate(request, CancellationToken.None);
 
@@ -81,18 +81,23 @@ public class PredictionsControllerTests
     public async Task Calculate_WhenServiceSucceeds_ReturnsOkWithResult()
     {
         var request = new CalculatePredictionRequest("ORD-1");
-        var predictionResult = new RuleBasedPredictionResult(
-            "ORD-1", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow,
-            Array.Empty<string>(), Array.Empty<string>(), Array.Empty<MaterialShortage>(), Array.Empty<TimelineItem>());
+        var predictionResult = CreateResponse();
 
         _serviceMock.Setup(s => s.CalculateAsync("ORD-1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result<RuleBasedPredictionResult>.Success(predictionResult));
+            .ReturnsAsync(Result<PredictionResponse>.Success(predictionResult));
 
         var result = await _controller.Calculate(request, CancellationToken.None);
 
         var okResult = Assert.IsType<OkObjectResult>(result);
         Assert.Same(predictionResult, okResult.Value);
     }
+
+    private static PredictionResponse CreateResponse() => PredictionResponse.From(
+        new PredictionAggregateResult("ORD-1",
+            new(PredictionProviderType.RuleBased, AiProviderStatus.Success, 60),
+            new(PredictionProviderType.Ai, AiProviderStatus.Success, 60),
+            new(FinalPredictionStatus.HybridCalculated, PredictionFallbackReason.None, 60,
+                "WeightedAverage", .6m, .4m, 0, 0)));
 
     [Fact]
     public async Task GetHistory_ReturnsItemsFromRepository()

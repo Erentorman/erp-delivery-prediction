@@ -28,6 +28,13 @@ public static class MvpAssumptionsConfigurationExtensions
             .Validate(
                 options => options.Shipping.FallbackDurationMinutes is null or > 0,
                 "Shipping fallback duration must be null or greater than zero.")
+            .Validate(
+                options => options.HybridPrediction.RuleBasedWeight >= 0 &&
+                           options.HybridPrediction.AiWeight >= 0 &&
+                           options.HybridPrediction.AiVarianceThresholdPercent >= 0 &&
+                           options.HybridPrediction.AiVarianceThresholdWorkingMinutes >= 0 &&
+                           options.HybridPrediction.AiTechnicalUpperBoundWorkingMinutes is null or > 0,
+                "Hybrid prediction weights and thresholds must be non-negative and an optional upper bound must be positive.")
             .ValidateOnStart();
         services.AddSingleton(sp => sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<MvpAssumptionsOptions>>().Value);
 

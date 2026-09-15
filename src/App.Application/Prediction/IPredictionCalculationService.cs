@@ -1,8 +1,9 @@
 using App.Application.Common;
+using App.Application.Contracts.Prediction;
 
 namespace App.Application.Prediction;
 
 public interface IPredictionCalculationService
 {
-    Task<Result<RuleBasedPredictionResult>> CalculateAsync(string orderReference, CancellationToken cancellationToken = default);
+    Task<Result<PredictionResponse>> CalculateAsync(string orderReference, CancellationToken cancellationToken = default);
 }

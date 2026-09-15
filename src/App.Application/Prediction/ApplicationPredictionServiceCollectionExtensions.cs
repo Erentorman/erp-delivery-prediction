@@ -27,6 +27,11 @@ public static class ApplicationPredictionServiceCollectionExtensions
 
         services.AddTransient<RuleBasedPredictionEngine>();
         services.AddTransient<PredictionResultMapper>();
+        services.AddTransient<RuleBasedPredictionProvider>();
+        services.AddTransient<IPredictionProvider>(sp => sp.GetRequiredService<RuleBasedPredictionProvider>());
+        services.AddTransient<IPredictionProvider>(sp => sp.GetRequiredService<AiPredictionProvider>());
+        services.AddTransient<IFinalPredictionCombiner, FinalPredictionCombiner>();
+        services.AddTransient<PredictionOrchestrator>();
 
         services.AddTransient<
             IPredictionCalculationService,

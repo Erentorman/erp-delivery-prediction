@@ -7,4 +7,5 @@ public class MvpAssumptionsOptions
     public WorkingCalendarAssumptionsOptions WorkingCalendar { get; set; } = new();
     public ProcurementAssumptionsOptions Procurement { get; set; } = new();
     public ShippingAssumptionsOptions Shipping { get; set; } = new();
+    public HybridPredictionOptions HybridPrediction { get; set; } = new();
 }

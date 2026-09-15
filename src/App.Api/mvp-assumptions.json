@@ -8,6 +8,13 @@
     },
     "shipping": {
       "fallbackDurationMinutes": null
+    },
+    "hybridPrediction": {
+      "ruleBasedWeight": 0.60,
+      "aiWeight": 0.40,
+      "aiVarianceThresholdPercent": 50,
+      "aiVarianceThresholdWorkingMinutes": 960,
+      "aiTechnicalUpperBoundWorkingMinutes": null
     }
   }
 }

@@ -160,7 +160,6 @@ services:
     networks:
       - erp-net
     # No "ports:" block → not reachable from the host
-<<<<<<< HEAD
     # Healthcheck is informational (visible in `docker compose ps`) only;
     # api does not depend on this service's health — see api's depends_on.
     healthcheck:
@@ -169,8 +168,6 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
-=======
->>>>>>> b7c3a0a (feat: add FastAPI AI inference service)
     restart: unless-stopped
 
   # ----------------------------------------------------------

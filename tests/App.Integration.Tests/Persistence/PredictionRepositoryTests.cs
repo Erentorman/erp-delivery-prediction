@@ -1,4 +1,5 @@
 using System.Text.Json;
+using App.Application.Contracts.Prediction;
 using App.Application.Prediction;
 using App.Persistence;
 using App.Persistence.Prediction;
@@ -221,5 +222,40 @@ public class PredictionRepositoryTests
         var candidate = Assert.Single(candidates);
         Assert.Equal("SO00001", candidate.ErpOrderRef);
         Assert.DoesNotContain(candidates, c => c.IsSimulation);
+    }
+
+    [Theory]
+    [InlineData(FinalPredictionStatus.HybridCalculated)]
+    [InlineData(FinalPredictionStatus.RuleBasedFallback)]
+    [InlineData(FinalPredictionStatus.AiOnlyCandidate)]
+    public async Task SaveAsync_HybridAggregate_PersistsFinalMetadataAndBothProviders(FinalPredictionStatus status)
+    {
+        await using var db = CreateContext($"{nameof(SaveAsync_HybridAggregate_PersistsFinalMetadataAndBothProviders)}-{status}");
+        var repo = new PredictionRepository(db);
+        var payload = new AiFeaturePayload(1, "P", null, 1, 1, 0, 0, null, 1, 60,
+            null, null, null, null, null, null, null);
+        var rule = new App.Application.Prediction.PredictionProviderResult(
+            PredictionProviderType.RuleBased, AiProviderStatus.Success, 100, Warnings: ["rb"], DurationMs: 5);
+        var ai = new App.Application.Prediction.PredictionProviderResult(
+            PredictionProviderType.Ai, AiProviderStatus.Success, 120,
+            ModelVersion: "xgb-v0.1", FeatureSchemaVersion: "1", TrainingDatasetVersion: "synthetic-v1",
+            FeaturePayload: payload, Warnings: ["ai"], DurationMs: 7);
+        var final = new FinalPredictionResult(
+            status,
+            status == FinalPredictionStatus.HybridCalculated ? PredictionFallbackReason.None : PredictionFallbackReason.AiPredictionTimeout,
+            status == FinalPredictionStatus.AiOnlyCandidate ? null : 108,
+            "WeightedAverage", .6m, .4m, 20, 20);
+
+        await repo.SaveAsync(new PredictionAggregateResult("O", rule, ai, final));
+
+        var aggregate = Assert.Single(db.PredictionResults);
+        Assert.Equal(status.ToString(), aggregate.FinalStatus);
+        Assert.Equal(2, db.PredictionProviderResults.Count());
+        var ruleRow = Assert.Single(db.PredictionProviderResults, x => x.ProviderType == "RuleBased");
+        Assert.Null(ruleRow.FeaturePayload);
+        var aiRow = Assert.Single(db.PredictionProviderResults, x => x.ProviderType == "Ai");
+        Assert.Contains("productRef", aiRow.FeaturePayload!);
+        Assert.Equal("xgb-v0.1", aiRow.ModelVersion);
+        Assert.Equal(7, aiRow.DurationMs);
     }
 }
