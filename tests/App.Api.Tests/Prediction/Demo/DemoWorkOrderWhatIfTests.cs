@@ -178,7 +178,8 @@ public sealed class DemoWorkOrderWhatIfTests
                 new CriticalPathCalculator(),
                 mapper,
                 Mock.Of<IWhatIfShippingReferenceResolver>(),
-                Mock.Of<IShippingRouteLookupService>());
+                Mock.Of<IShippingRouteLookupService>(),
+                Mock.Of<IPredictionRepository>());
         }
     }
 

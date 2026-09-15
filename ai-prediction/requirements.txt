@@ -1,2 +1,9 @@
 fastapi>=0.111.0
 uvicorn>=0.30.1
+
+# Inference runtime for the T-907 xgb-v0.1 artifact (model.json, XGBRegressor
+# sklearn wrapper). Versions kept in lockstep with requirements-training.txt
+# so the artifact is loaded with the same library major version it was
+# trained with.
+xgboost>=3.0,<4.0
+scikit-learn>=1.5,<2.0

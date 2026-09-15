@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace App.Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260824125315_T910AddPredictionResults")]
-    partial class T910AddPredictionResults
+    [Migration("20260813093137_AddPredictionPersistence")]
+    partial class AddPredictionPersistence
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -127,7 +127,7 @@ namespace App.Persistence.Migrations
                     b.ToTable("IntegrationLogs", (string)null);
                 });
 
-            modelBuilder.Entity("App.Domain.Entities.PredictionProviderResultEntity", b =>
+            modelBuilder.Entity("App.Domain.Entities.PredictionProviderResult", b =>
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
@@ -136,15 +136,11 @@ namespace App.Persistence.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
-                    b.Property<DateTimeOffset>("CreatedAt")
+                    b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamptz")
                         .HasColumnName("created_at");
 
-                    b.Property<int>("DurationMs")
-                        .HasColumnType("integer")
-                        .HasColumnName("duration_ms");
-
-                    b.Property<DateTimeOffset?>("EstimatedDeliveryDate")
+                    b.Property<DateTime?>("EstimatedDeliveryDate")
                         .HasColumnType("timestamptz")
                         .HasColumnName("estimated_delivery_date");
 
@@ -210,81 +206,98 @@ namespace App.Persistence.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
-                    b.Property<long?>("AbsoluteDifferenceMinutes")
+                    b.Property<DateTime?>("ActualDeliveryDate")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("actual_delivery_date");
+
+                    b.Property<DateTime?>("ActualProductionEnd")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("actual_production_end");
+
+                    b.Property<DateTime?>("ActualProductionStart")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("actual_production_start");
+
+                    b.Property<DateTime?>("ActualShippingDate")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("actual_shipping_date");
+
+                    b.Property<long?>("ActualTotalWorkingLeadTimeMinutes")
                         .HasColumnType("bigint")
-                        .HasColumnName("absolute_difference_minutes");
+                        .HasColumnName("actual_total_working_lead_time_minutes");
 
-                    b.Property<decimal?>("AiWeight")
-                        .HasPrecision(4, 2)
-                        .HasColumnType("numeric(4,2)")
-                        .HasColumnName("ai_weight");
-
-                    b.Property<DateTimeOffset>("CalculatedAt")
+                    b.Property<DateTime>("CalculatedAt")
                         .HasColumnType("timestamptz")
                         .HasColumnName("calculated_at");
 
-                    b.Property<string>("CombinationStrategy")
-                        .HasMaxLength(60)
-                        .HasColumnType("character varying(60)")
-                        .HasColumnName("combination_strategy");
+                    b.Property<long?>("CreatedBy")
+                        .HasColumnType("bigint")
+                        .HasColumnName("created_by");
 
-                    b.Property<DateTimeOffset?>("DeliveryDate")
+                    b.Property<string>("CriticalPathSummary")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("critical_path_summary");
+
+                    b.Property<string>("DataSufficiencyLevel")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("data_sufficiency_level");
+
+                    b.Property<bool?>("DeliveredLate")
+                        .HasColumnType("boolean")
+                        .HasColumnName("delivered_late");
+
+                    b.Property<DateTime?>("DeliveryDate")
                         .HasColumnType("timestamptz")
                         .HasColumnName("delivery_date");
 
-                    b.Property<string>("ErpOrderReference")
-                        .IsRequired()
+                    b.Property<string>("ErpOrderRef")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)")
                         .HasColumnName("erp_order_ref");
-
-                    b.Property<string>("FallbackReason")
-                        .IsRequired()
-                        .HasMaxLength(60)
-                        .HasColumnType("character varying(60)")
-                        .HasColumnName("fallback_reason");
-
-                    b.Property<string>("FinalStatus")
-                        .IsRequired()
-                        .HasMaxLength(40)
-                        .HasColumnType("character varying(40)")
-                        .HasColumnName("final_status");
 
                     b.Property<long?>("FinalWorkingLeadTimeMinutes")
                         .HasColumnType("bigint")
                         .HasColumnName("final_working_lead_time_minutes");
 
-                    b.Property<DateTimeOffset?>("ProductionEnd")
+                    b.Property<bool>("IsSimulation")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_simulation");
+
+                    b.Property<DateTime?>("ProductionEnd")
                         .HasColumnType("timestamptz")
                         .HasColumnName("production_end");
 
-                    b.Property<DateTimeOffset?>("ProductionStart")
+                    b.Property<DateTime?>("ProductionStart")
                         .HasColumnType("timestamptz")
                         .HasColumnName("production_start");
 
-                    b.Property<decimal?>("RelativeDifferencePercent")
-                        .HasPrecision(6, 2)
-                        .HasColumnType("numeric(6,2)")
-                        .HasColumnName("relative_difference_percent");
+                    b.Property<DateTime?>("RequestedDeliveryDate")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("requested_delivery_date");
 
-                    b.Property<decimal?>("RuleBasedWeight")
-                        .HasPrecision(4, 2)
-                        .HasColumnType("numeric(4,2)")
-                        .HasColumnName("rule_based_weight");
+                    b.Property<DateTime?>("ShipDate")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("ship_date");
+
+                    b.Property<string>("SimulationInputSummary")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("simulation_input_summary");
 
                     b.Property<string>("Status")
                         .IsRequired()
-                        .HasMaxLength(40)
-                        .HasColumnType("character varying(40)")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
                         .HasColumnName("status");
 
                     b.HasKey("Id");
 
                     b.HasIndex("CalculatedAt");
 
-                    b.HasIndex("ErpOrderReference");
+                    b.HasIndex("ErpOrderRef");
 
-                    b.HasIndex("FinalStatus");
+                    b.HasIndex("IsSimulation");
 
                     b.ToTable("PredictionResults", (string)null);
                 });
@@ -425,7 +438,7 @@ namespace App.Persistence.Migrations
                     b.Navigation("IntegrationLog");
                 });
 
-            modelBuilder.Entity("App.Domain.Entities.PredictionProviderResultEntity", b =>
+            modelBuilder.Entity("App.Domain.Entities.PredictionProviderResult", b =>
                 {
                     b.HasOne("App.Domain.Entities.PredictionResult", "PredictionResult")
                         .WithMany("ProviderResults")

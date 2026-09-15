@@ -6,6 +6,7 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddSingleton<MockErpDataStore>();
+builder.Services.AddHealthChecks();
 
 var app = builder.Build();
 
@@ -20,6 +21,10 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.MapControllers();
+
+// Docker/Compose healthcheck target. MockErp.Api has no authentication
+// middleware configured, so no anonymous-access opt-in is needed.
+app.MapHealthChecks("/health");
 
 app.Run();
 

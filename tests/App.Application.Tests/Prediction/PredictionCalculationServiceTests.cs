@@ -72,5 +72,10 @@ public sealed class PredictionCalculationServiceTests
         public PredictionAggregateResult? Saved { get; private set; }
         public Task SaveAsync(PredictionAggregateResult result, CancellationToken cancellationToken = default)
         { Saved = result; return Task.CompletedTask; }
+        public Task SaveAsync(PredictionPersistenceRequest request, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task<IReadOnlyList<PredictionHistoryListItem>> GetHistoryAsync(string? orderReference, int page, int pageSize, CancellationToken cancellationToken = default)
+            => Task.FromResult<IReadOnlyList<PredictionHistoryListItem>>([]);
+        public Task<PredictionHistoryDetail?> GetByIdAsync(long id, CancellationToken cancellationToken = default)
+            => Task.FromResult<PredictionHistoryDetail?>(null);
     }
 }

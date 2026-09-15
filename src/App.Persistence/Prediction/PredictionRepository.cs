@@ -1,48 +1,242 @@
 using System.Text.Json;
 using App.Application.Prediction;
 using App.Domain.Entities;
+using Microsoft.EntityFrameworkCore;
 
 namespace App.Persistence.Prediction;
 
 public sealed class PredictionRepository : IPredictionRepository
 {
-    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
-    private readonly AppDbContext _context;
-    public PredictionRepository(AppDbContext context) => _context = context;
+    private const string RuleBasedProviderType = "RuleBased";
+    private const string SuccessProviderStatus = "Success";
+    private const string CalculatedStatus = "Calculated";
+    private const string CalculatedWithAssumptionsStatus = "CalculatedWithAssumptions";
+    private const string FullDataSufficiency = "Full";
+
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+    };
+
+    private readonly AppDbContext _dbContext;
+
+    public PredictionRepository(AppDbContext dbContext)
+    {
+        _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
+    }
 
     public async Task SaveAsync(PredictionAggregateResult result, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(result);
+
         var final = result.FinalPrediction;
+        var calculatedAt = DateTime.UtcNow;
         var entity = new PredictionResult
         {
-            ErpOrderReference = result.OrderReference,
-            Status = final.Status is FinalPredictionStatus.HybridCalculated or FinalPredictionStatus.RuleBasedFallback ? "Calculated" : "InsufficientData",
-            FinalStatus = final.Status.ToString(), FallbackReason = final.FallbackReason.ToString(),
-            CombinationStrategy = final.CombinationStrategy, RuleBasedWeight = final.RuleBasedWeight,
-            AiWeight = final.AiWeight, FinalWorkingLeadTimeMinutes = final.WorkingLeadTimeMinutes,
+            ErpOrderRef = result.OrderReference,
+            IsSimulation = false,
+            Status = final.Status is FinalPredictionStatus.HybridCalculated or FinalPredictionStatus.RuleBasedFallback
+                ? CalculatedStatus
+                : "InsufficientData",
+            DataSufficiencyLevel = FullDataSufficiency,
+            FinalStatus = final.Status.ToString(),
+            FallbackReason = final.FallbackReason.ToString(),
+            CombinationStrategy = final.CombinationStrategy,
+            RuleBasedWeight = final.RuleBasedWeight,
+            AiWeight = final.AiWeight,
+            FinalWorkingLeadTimeMinutes = final.WorkingLeadTimeMinutes,
             AbsoluteDifferenceMinutes = final.AbsoluteDifferenceMinutes,
             RelativeDifferencePercent = final.RelativeDifferencePercent,
-            ProductionStart = final.EstimatedStart, ProductionEnd = final.EstimatedEnd,
-            DeliveryDate = final.EstimatedDelivery, CalculatedAt = DateTimeOffset.UtcNow
+            ProductionStart = final.EstimatedStart?.UtcDateTime,
+            ProductionEnd = final.EstimatedEnd?.UtcDateTime,
+            ShipDate = final.EstimatedEnd?.UtcDateTime,
+            DeliveryDate = final.EstimatedDelivery?.UtcDateTime,
+            CalculatedAt = calculatedAt
         };
-        entity.ProviderResults.Add(Map(result.RuleBasedPrediction, entity));
-        entity.ProviderResults.Add(Map(result.AiPrediction, entity));
-        _context.PredictionResults.Add(entity);
-        await _context.SaveChangesAsync(cancellationToken);
+
+        entity.ProviderResults.Add(Map(result.RuleBasedPrediction, entity, calculatedAt));
+        entity.ProviderResults.Add(Map(result.AiPrediction, entity, calculatedAt));
+        _dbContext.PredictionResults.Add(entity);
+        await _dbContext.SaveChangesAsync(cancellationToken);
     }
 
-    private static PredictionProviderResultEntity Map(PredictionProviderResult value, PredictionResult owner) => new()
+    public async Task SaveAsync(PredictionPersistenceRequest request, CancellationToken cancellationToken = default)
     {
-        PredictionResult = owner, ProviderType = value.ProviderType.ToString(), ProviderStatus = value.Status.ToString(),
+        ArgumentNullException.ThrowIfNull(request);
+
+        var result = request.Result;
+        var calculatedAt = result.EstimatedStart.UtcDateTime;
+        var hasFallbacks = result.AppliedFallbackReasons.Count > 0;
+
+        var criticalPathSummary = JsonSerializer.Serialize(
+            new
+            {
+                criticalPath = result.CriticalPathOperations,
+                timeline = result.Timeline,
+                shortages = result.Shortages
+            },
+            JsonOptions);
+
+        var workingLeadTimeMinutes = (long)Math.Round((result.EstimatedEnd - result.EstimatedStart).TotalMinutes);
+
+        var predictionResult = new PredictionResult
+        {
+            ErpOrderRef = request.ErpOrderRef,
+            IsSimulation = request.IsSimulation,
+            SimulationInputSummary = request.SimulationInput is null
+                ? null
+                : JsonSerializer.Serialize(request.SimulationInput, JsonOptions),
+            Status = hasFallbacks ? CalculatedWithAssumptionsStatus : CalculatedStatus,
+            DataSufficiencyLevel = FullDataSufficiency,
+            FinalWorkingLeadTimeMinutes = workingLeadTimeMinutes,
+            ProductionStart = result.EstimatedStart.UtcDateTime,
+            ProductionEnd = result.EstimatedEnd.UtcDateTime,
+            ShipDate = result.EstimatedEnd.UtcDateTime,
+            DeliveryDate = result.EstimatedDelivery.UtcDateTime,
+            RequestedDeliveryDate = request.RequestedDeliveryDate?.UtcDateTime,
+            CriticalPathSummary = criticalPathSummary,
+            CalculatedAt = calculatedAt
+        };
+
+        var providerResult = new App.Domain.Entities.PredictionProviderResult
+        {
+            PredictionResult = predictionResult,
+            ProviderType = RuleBasedProviderType,
+            ProviderStatus = SuccessProviderStatus,
+            WorkingLeadTimeMinutes = workingLeadTimeMinutes,
+            EstimatedDeliveryDate = result.EstimatedDelivery.UtcDateTime,
+            Warnings = JsonSerializer.Serialize(result.AppliedFallbackReasons, JsonOptions),
+            CreatedAt = calculatedAt
+        };
+
+        _dbContext.PredictionResults.Add(predictionResult);
+        _dbContext.PredictionProviderResults.Add(providerResult);
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<PredictionHistoryListItem>> GetHistoryAsync(
+        string? orderReference,
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _dbContext.PredictionResults.AsNoTracking().AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(orderReference))
+        {
+            query = query.Where(p => p.ErpOrderRef == orderReference);
+        }
+
+        var effectivePage = page < 1 ? 1 : page;
+        var effectivePageSize = pageSize is < 1 or > 100 ? 20 : pageSize;
+
+        var rows = await query
+            .OrderByDescending(p => p.CalculatedAt)
+            .Skip((effectivePage - 1) * effectivePageSize)
+            .Take(effectivePageSize)
+            .Select(p => new
+            {
+                p.Id,
+                p.ErpOrderRef,
+                p.IsSimulation,
+                p.Status,
+                p.DataSufficiencyLevel,
+                p.FinalWorkingLeadTimeMinutes,
+                p.DeliveryDate,
+                p.CalculatedAt,
+                p.SimulationInputSummary
+            })
+            .ToListAsync(cancellationToken);
+
+        return rows
+            .Select(r => new PredictionHistoryListItem(
+                r.Id,
+                r.ErpOrderRef,
+                r.IsSimulation,
+                r.Status,
+                r.DataSufficiencyLevel,
+                r.FinalWorkingLeadTimeMinutes,
+                ToUtcOffset(r.DeliveryDate),
+                new DateTimeOffset(DateTime.SpecifyKind(r.CalculatedAt, DateTimeKind.Utc)),
+                ParseSimulationInput(r.IsSimulation, r.SimulationInputSummary)))
+            .ToList();
+    }
+
+    public async Task<PredictionHistoryDetail?> GetByIdAsync(long id, CancellationToken cancellationToken = default)
+    {
+        var entity = await _dbContext.PredictionResults
+            .AsNoTracking()
+            .Include(p => p.ProviderResults)
+            .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
+
+        if (entity is null)
+        {
+            return null;
+        }
+
+        return new PredictionHistoryDetail(
+            entity.Id,
+            entity.ErpOrderRef,
+            entity.IsSimulation,
+            entity.SimulationInputSummary,
+            entity.Status,
+            entity.DataSufficiencyLevel,
+            entity.FinalWorkingLeadTimeMinutes,
+            ToUtcOffset(entity.ProductionStart),
+            ToUtcOffset(entity.ProductionEnd),
+            ToUtcOffset(entity.ShipDate),
+            ToUtcOffset(entity.DeliveryDate),
+            ToUtcOffset(entity.RequestedDeliveryDate),
+            entity.CriticalPathSummary,
+            new DateTimeOffset(DateTime.SpecifyKind(entity.CalculatedAt, DateTimeKind.Utc)),
+            ToUtcOffset(entity.ActualDeliveryDate),
+            entity.ActualTotalWorkingLeadTimeMinutes,
+            entity.DeliveredLate,
+            entity.ProviderResults
+                .Select(pr => new PredictionHistoryProviderResult(
+                    pr.ProviderType,
+                    pr.ProviderStatus,
+                    pr.WorkingLeadTimeMinutes,
+                    ToUtcOffset(pr.EstimatedDeliveryDate),
+                    pr.ModelVersion,
+                    pr.FeatureSchemaVersion,
+                    pr.TrainingDatasetVersion,
+                    pr.Warnings))
+                .ToList(),
+            ParseSimulationInput(entity.IsSimulation, entity.SimulationInputSummary));
+    }
+
+    private static DateTimeOffset? ToUtcOffset(DateTime? value)
+        => value.HasValue ? new DateTimeOffset(DateTime.SpecifyKind(value.Value, DateTimeKind.Utc)) : null;
+
+    private static WhatIfSimulationInputSummary? ParseSimulationInput(bool isSimulation, string? simulationInputSummary)
+        => isSimulation && simulationInputSummary is not null
+            ? JsonSerializer.Deserialize<WhatIfSimulationInputSummary>(simulationInputSummary, JsonOptions)
+            : null;
+
+    private static App.Domain.Entities.PredictionProviderResult Map(
+        App.Application.Prediction.PredictionProviderResult value,
+        PredictionResult owner,
+        DateTime calculatedAt) => new()
+    {
+        PredictionResult = owner,
+        ProviderType = value.ProviderType.ToString(),
+        ProviderStatus = value.Status.ToString(),
         WorkingLeadTimeMinutes = value.WorkingLeadTimeMinutes is decimal minutes
-            ? checked((long)Math.Round(minutes, MidpointRounding.AwayFromZero)) : null,
-        EstimatedDeliveryDate = value.RuleBasedPrediction?.EstimatedDelivery,
-        ModelVersion = value.ModelVersion, FeatureSchemaVersion = value.FeatureSchemaVersion,
+            ? checked((long)Math.Round(minutes, MidpointRounding.AwayFromZero))
+            : null,
+        EstimatedDeliveryDate = value.RuleBasedPrediction?.EstimatedDelivery.UtcDateTime,
+        ModelVersion = value.ModelVersion,
+        FeatureSchemaVersion = value.FeatureSchemaVersion,
         TrainingDatasetVersion = value.TrainingDatasetVersion,
         FeaturePayload = value.ProviderType == PredictionProviderType.Ai && value.FeaturePayload is not null
-            ? JsonSerializer.Serialize(value.FeaturePayload, JsonOptions) : null,
-        Warnings = value.Warnings is { Count: > 0 } ? JsonSerializer.Serialize(value.Warnings, JsonOptions) : null,
-        DurationMs = checked((int)Math.Min(value.DurationMs, int.MaxValue)), CreatedAt = DateTimeOffset.UtcNow
+            ? JsonSerializer.Serialize(value.FeaturePayload, JsonOptions)
+            : null,
+        Warnings = value.Warnings is { Count: > 0 }
+            ? JsonSerializer.Serialize(value.Warnings, JsonOptions)
+            : null,
+        DurationMs = checked((int)Math.Min(value.DurationMs, int.MaxValue)),
+        CreatedAt = calculatedAt
     };
 }

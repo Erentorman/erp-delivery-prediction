@@ -19,6 +19,7 @@ public sealed class PredictionServiceRegistrationTests
         services.AddSingleton(Mock.Of<IClock>());
         services.AddSingleton(Mock.Of<IWhatIfShippingReferenceResolver>());
         services.AddSingleton(Mock.Of<IShippingRouteLookupService>());
+        services.AddSingleton(Mock.Of<IPredictionRepository>());
         services.AddSingleton(new MvpAssumptionsOptions());
         services.AddTransient(_ => new AiPredictionProvider(
             Mock.Of<IAiFeatureBuilder>(), Mock.Of<IAiPredictionClient>()));

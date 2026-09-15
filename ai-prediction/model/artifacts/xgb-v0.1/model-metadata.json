@@ -1,0 +1,62 @@
+{
+  "model_version": "xgb-v0.1",
+  "model_type": "XGBRegressor",
+  "feature_schema_version": 1,
+  "training_dataset_version": "synthetic-v1",
+  "target_name": "actual_total_working_lead_time_minutes",
+  "feature_order": [
+    "product_ref",
+    "quantity",
+    "bom_item_count"
+  ],
+  "categorical_encodings": {
+    "product_ref": {
+      "P001": 0,
+      "P002": 1,
+      "P003": 2,
+      "P004": 3
+    }
+  },
+  "unknown_category_code": -1,
+  "training_timestamp_utc": "2026-08-20T12:41:51.952750+00:00",
+  "split": {
+    "random_state": 42,
+    "test_size": 0.2,
+    "train_count": 800,
+    "test_count": 200
+  },
+  "train_row_count": 800,
+  "test_row_count": 200,
+  "xgboost_params": {
+    "n_estimators": 200,
+    "max_depth": 4,
+    "learning_rate": 0.1,
+    "random_state": 42,
+    "n_jobs": 1,
+    "objective": "reg:squarederror"
+  },
+  "dataset_source": {
+    "ground_truth_path": "../tools/erp-seed-converter/output/full/prediction-ground-truth.json",
+    "seed_path": "../tools/erp-seed-converter/output/full/mock-erp-seed.json",
+    "is_preview_source": false
+  },
+  "target_mapping_warnings": {
+    "check": "target_calendar_span_plausibility",
+    "violation_count": 317,
+    "total_row_count": 1000
+  },
+  "metrics": {
+    "baseline": {
+      "model_type": "MeanBaselineRegressor",
+      "mae": 1930.2402,
+      "rmse": 2422.3290013490246,
+      "r2": -0.010318565807688529
+    },
+    "xgboost": {
+      "model_type": "XGBRegressor",
+      "mae": 1175.2402001953126,
+      "rmse": 1500.8977680483981,
+      "r2": 0.6121227572975767
+    }
+  }
+}

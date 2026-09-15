@@ -4,50 +4,45 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace App.Persistence.Configurations;
 
-public sealed class PredictionResultConfiguration : IEntityTypeConfiguration<PredictionResult>
+public class PredictionResultConfiguration : IEntityTypeConfiguration<PredictionResult>
 {
-    public void Configure(EntityTypeBuilder<PredictionResult> b)
+    public void Configure(EntityTypeBuilder<PredictionResult> builder)
     {
-        b.ToTable("PredictionResults"); b.HasKey(x => x.Id);
-        b.Property(x => x.Id).HasColumnName("id").UseIdentityByDefaultColumn();
-        b.Property(x => x.ErpOrderReference).HasColumnName("erp_order_ref").HasMaxLength(100).IsRequired();
-        b.Property(x => x.Status).HasColumnName("status").HasMaxLength(40).IsRequired();
-        b.Property(x => x.FinalStatus).HasColumnName("final_status").HasMaxLength(40).IsRequired();
-        b.Property(x => x.FallbackReason).HasColumnName("fallback_reason").HasMaxLength(60).IsRequired();
-        b.Property(x => x.CombinationStrategy).HasColumnName("combination_strategy").HasMaxLength(60);
-        b.Property(x => x.RuleBasedWeight).HasColumnName("rule_based_weight").HasPrecision(4, 2);
-        b.Property(x => x.AiWeight).HasColumnName("ai_weight").HasPrecision(4, 2);
-        b.Property(x => x.FinalWorkingLeadTimeMinutes).HasColumnName("final_working_lead_time_minutes");
-        b.Property(x => x.AbsoluteDifferenceMinutes).HasColumnName("absolute_difference_minutes");
-        b.Property(x => x.RelativeDifferencePercent).HasColumnName("relative_difference_percent").HasPrecision(6, 2);
-        b.Property(x => x.ProductionStart).HasColumnName("production_start").HasColumnType("timestamptz");
-        b.Property(x => x.ProductionEnd).HasColumnName("production_end").HasColumnType("timestamptz");
-        b.Property(x => x.DeliveryDate).HasColumnName("delivery_date").HasColumnType("timestamptz");
-        b.Property(x => x.CalculatedAt).HasColumnName("calculated_at").HasColumnType("timestamptz").IsRequired();
-        b.HasIndex(x => x.ErpOrderReference); b.HasIndex(x => x.FinalStatus); b.HasIndex(x => x.CalculatedAt);
-    }
-}
-
-public sealed class PredictionProviderResultConfiguration : IEntityTypeConfiguration<PredictionProviderResultEntity>
-{
-    public void Configure(EntityTypeBuilder<PredictionProviderResultEntity> b)
-    {
-        b.ToTable("PredictionProviderResults"); b.HasKey(x => x.Id);
-        b.Property(x => x.Id).HasColumnName("id").UseIdentityByDefaultColumn();
-        b.Property(x => x.PredictionResultId).HasColumnName("prediction_result_id");
-        b.Property(x => x.ProviderType).HasColumnName("provider_type").HasMaxLength(20).IsRequired();
-        b.Property(x => x.ProviderStatus).HasColumnName("provider_status").HasMaxLength(30).IsRequired();
-        b.Property(x => x.WorkingLeadTimeMinutes).HasColumnName("working_lead_time_minutes");
-        b.Property(x => x.EstimatedDeliveryDate).HasColumnName("estimated_delivery_date").HasColumnType("timestamptz");
-        b.Property(x => x.ModelVersion).HasColumnName("model_version").HasMaxLength(50);
-        b.Property(x => x.FeatureSchemaVersion).HasColumnName("feature_schema_version").HasMaxLength(50);
-        b.Property(x => x.TrainingDatasetVersion).HasColumnName("training_dataset_version").HasMaxLength(50);
-        b.Property(x => x.FeaturePayload).HasColumnName("feature_payload").HasColumnType("jsonb");
-        b.Property(x => x.Warnings).HasColumnName("warnings").HasColumnType("jsonb");
-        b.Property(x => x.DurationMs).HasColumnName("duration_ms");
-        b.Property(x => x.CreatedAt).HasColumnName("created_at").HasColumnType("timestamptz").IsRequired();
-        b.HasOne(x => x.PredictionResult).WithMany(x => x.ProviderResults).HasForeignKey(x => x.PredictionResultId).OnDelete(DeleteBehavior.Cascade);
-        b.HasIndex(x => new { x.PredictionResultId, x.ProviderType }).IsUnique();
-        b.HasIndex(x => x.ProviderType);
+        builder.ToTable("PredictionResults");
+        builder.HasKey(p => p.Id);
+        builder.Property(p => p.Id).HasColumnName("id").UseIdentityByDefaultColumn();
+        builder.Property(p => p.ErpOrderRef).HasColumnName("erp_order_ref").HasMaxLength(100);
+        builder.Property(p => p.IsSimulation).HasColumnName("is_simulation").IsRequired();
+        builder.Property(p => p.SimulationInputSummary).HasColumnName("simulation_input_summary").HasColumnType("jsonb");
+        builder.Property(p => p.Status).HasColumnName("status").HasMaxLength(50).IsRequired();
+        builder.Property(p => p.DataSufficiencyLevel).HasColumnName("data_sufficiency_level").HasMaxLength(20).IsRequired();
+        builder.Property(p => p.FinalStatus).HasColumnName("final_status").HasMaxLength(40);
+        builder.Property(p => p.FallbackReason).HasColumnName("fallback_reason").HasMaxLength(60);
+        builder.Property(p => p.CombinationStrategy).HasColumnName("combination_strategy").HasMaxLength(60);
+        builder.Property(p => p.RuleBasedWeight).HasColumnName("rule_based_weight").HasPrecision(4, 2);
+        builder.Property(p => p.AiWeight).HasColumnName("ai_weight").HasPrecision(4, 2);
+        builder.Property(p => p.FinalWorkingLeadTimeMinutes).HasColumnName("final_working_lead_time_minutes");
+        builder.Property(p => p.AbsoluteDifferenceMinutes).HasColumnName("absolute_difference_minutes");
+        builder.Property(p => p.RelativeDifferencePercent).HasColumnName("relative_difference_percent").HasPrecision(6, 2);
+        builder.Property(p => p.ProductionStart).HasColumnName("production_start").HasColumnType("timestamptz");
+        builder.Property(p => p.ProductionEnd).HasColumnName("production_end").HasColumnType("timestamptz");
+        builder.Property(p => p.ShipDate).HasColumnName("ship_date").HasColumnType("timestamptz");
+        builder.Property(p => p.DeliveryDate).HasColumnName("delivery_date").HasColumnType("timestamptz");
+        builder.Property(p => p.RequestedDeliveryDate).HasColumnName("requested_delivery_date").HasColumnType("timestamptz");
+        builder.Property(p => p.CriticalPathSummary).HasColumnName("critical_path_summary").HasColumnType("jsonb");
+        builder.Property(p => p.CalculatedAt).HasColumnName("calculated_at").HasColumnType("timestamptz").IsRequired();
+        builder.Property(p => p.ActualProductionStart).HasColumnName("actual_production_start").HasColumnType("timestamptz");
+        builder.Property(p => p.ActualProductionEnd).HasColumnName("actual_production_end").HasColumnType("timestamptz");
+        builder.Property(p => p.ActualShippingDate).HasColumnName("actual_shipping_date").HasColumnType("timestamptz");
+        builder.Property(p => p.ActualDeliveryDate).HasColumnName("actual_delivery_date").HasColumnType("timestamptz");
+        builder.Property(p => p.ActualTotalWorkingLeadTimeMinutes).HasColumnName("actual_total_working_lead_time_minutes");
+        builder.Property(p => p.DeliveredLate).HasColumnName("delivered_late");
+        builder.Property(p => p.CreatedBy).HasColumnName("created_by");
+        builder.HasIndex(p => p.ErpOrderRef);
+        builder.HasIndex(p => p.CalculatedAt);
+        builder.HasIndex(p => p.IsSimulation);
+        builder.HasIndex(p => p.FinalStatus);
+        builder.HasMany(p => p.ProviderResults).WithOne(pr => pr.PredictionResult)
+            .HasForeignKey(pr => pr.PredictionResultId).OnDelete(DeleteBehavior.Cascade);
     }
 }

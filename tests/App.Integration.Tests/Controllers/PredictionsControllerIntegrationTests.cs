@@ -4,6 +4,7 @@ using App.Api.Controllers;
 using App.Application.Common;
 using App.Application.Prediction;
 using App.Application.Contracts.Prediction;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -25,6 +26,10 @@ public class PredictionsControllerIntegrationTests : IClassFixture<WebApplicatio
         Environment.SetEnvironmentVariable("MockErp__BaseAddress", "http://localhost:5288");
         _factory = factory.WithWebHostBuilder(builder =>
         {
+            // "Testing" opts this host out of App.Api's startup Database.Migrate()
+            // call — this fixture uses a dummy, unreachable connection string and
+            // never exercises persistence.
+            builder.UseEnvironment("Testing");
             builder.ConfigureServices(services =>
             {
                 var mockService = new Mock<IPredictionCalculationService>();

@@ -7,7 +7,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace App.Persistence.Migrations
 {
     /// <inheritdoc />
-    public partial class T910AddPredictionResults : Migration
+    public partial class AddPredictionPersistence : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -18,20 +18,26 @@ namespace App.Persistence.Migrations
                 {
                     id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    erp_order_ref = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
-                    status = table.Column<string>(type: "character varying(40)", maxLength: 40, nullable: false),
-                    final_status = table.Column<string>(type: "character varying(40)", maxLength: 40, nullable: false),
-                    fallback_reason = table.Column<string>(type: "character varying(60)", maxLength: 60, nullable: false),
-                    combination_strategy = table.Column<string>(type: "character varying(60)", maxLength: 60, nullable: true),
-                    rule_based_weight = table.Column<decimal>(type: "numeric(4,2)", precision: 4, scale: 2, nullable: true),
-                    ai_weight = table.Column<decimal>(type: "numeric(4,2)", precision: 4, scale: 2, nullable: true),
+                    erp_order_ref = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    is_simulation = table.Column<bool>(type: "boolean", nullable: false),
+                    simulation_input_summary = table.Column<string>(type: "jsonb", nullable: true),
+                    status = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    data_sufficiency_level = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
                     final_working_lead_time_minutes = table.Column<long>(type: "bigint", nullable: true),
-                    absolute_difference_minutes = table.Column<long>(type: "bigint", nullable: true),
-                    relative_difference_percent = table.Column<decimal>(type: "numeric(6,2)", precision: 6, scale: 2, nullable: true),
-                    production_start = table.Column<DateTimeOffset>(type: "timestamptz", nullable: true),
-                    production_end = table.Column<DateTimeOffset>(type: "timestamptz", nullable: true),
-                    delivery_date = table.Column<DateTimeOffset>(type: "timestamptz", nullable: true),
-                    calculated_at = table.Column<DateTimeOffset>(type: "timestamptz", nullable: false)
+                    production_start = table.Column<DateTime>(type: "timestamptz", nullable: true),
+                    production_end = table.Column<DateTime>(type: "timestamptz", nullable: true),
+                    ship_date = table.Column<DateTime>(type: "timestamptz", nullable: true),
+                    delivery_date = table.Column<DateTime>(type: "timestamptz", nullable: true),
+                    requested_delivery_date = table.Column<DateTime>(type: "timestamptz", nullable: true),
+                    critical_path_summary = table.Column<string>(type: "jsonb", nullable: true),
+                    calculated_at = table.Column<DateTime>(type: "timestamptz", nullable: false),
+                    actual_production_start = table.Column<DateTime>(type: "timestamptz", nullable: true),
+                    actual_production_end = table.Column<DateTime>(type: "timestamptz", nullable: true),
+                    actual_shipping_date = table.Column<DateTime>(type: "timestamptz", nullable: true),
+                    actual_delivery_date = table.Column<DateTime>(type: "timestamptz", nullable: true),
+                    actual_total_working_lead_time_minutes = table.Column<long>(type: "bigint", nullable: true),
+                    delivered_late = table.Column<bool>(type: "boolean", nullable: true),
+                    created_by = table.Column<long>(type: "bigint", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -48,14 +54,13 @@ namespace App.Persistence.Migrations
                     provider_type = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
                     provider_status = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: false),
                     working_lead_time_minutes = table.Column<long>(type: "bigint", nullable: true),
-                    estimated_delivery_date = table.Column<DateTimeOffset>(type: "timestamptz", nullable: true),
+                    estimated_delivery_date = table.Column<DateTime>(type: "timestamptz", nullable: true),
                     model_version = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
                     feature_schema_version = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
                     training_dataset_version = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
                     feature_payload = table.Column<string>(type: "jsonb", nullable: true),
                     warnings = table.Column<string>(type: "jsonb", nullable: true),
-                    duration_ms = table.Column<int>(type: "integer", nullable: false),
-                    created_at = table.Column<DateTimeOffset>(type: "timestamptz", nullable: false)
+                    created_at = table.Column<DateTime>(type: "timestamptz", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -90,9 +95,9 @@ namespace App.Persistence.Migrations
                 column: "erp_order_ref");
 
             migrationBuilder.CreateIndex(
-                name: "IX_PredictionResults_final_status",
+                name: "IX_PredictionResults_is_simulation",
                 table: "PredictionResults",
-                column: "final_status");
+                column: "is_simulation");
         }
 
         /// <inheritdoc />
