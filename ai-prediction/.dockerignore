@@ -1,0 +1,10 @@
+.venv/
+__pycache__/
+*.pyc
+tests/
+training/
+data/
+docs/
+README.md
+requirements-training.txt
+run.sh
