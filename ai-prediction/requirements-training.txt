@@ -1,0 +1,10 @@
+# Offline model training only (T-907). NOT installed into the FastAPI
+# runtime image — Dockerfile installs requirements.txt only.
+#
+# numpy/scipy are transitive dependencies of xgboost and are not imported
+# directly by training code. scikit-learn is required by xgboost's sklearn-
+# compatible wrapper (XGBRegressor) itself, not used directly for metrics or
+# splitting — MAE/RMSE/R2 and the train/test split are implemented in
+# training code per the T-905/T-907 contract.
+xgboost>=3.0,<4.0
+scikit-learn>=1.5,<2.0
