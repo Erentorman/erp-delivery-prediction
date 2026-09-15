@@ -13,12 +13,14 @@ public class PredictionsControllerTests
     private readonly Mock<IPredictionCalculationService> _serviceMock;
     private readonly PredictionsController _controller;
     private readonly Mock<IWhatIfPredictionCalculationService> _whatIfServiceMock;
+    private readonly Mock<IPredictionRepository> _predictionRepositoryMock;
 
     public PredictionsControllerTests()
     {
         _serviceMock = new Mock<IPredictionCalculationService>();
         _whatIfServiceMock = new Mock<IWhatIfPredictionCalculationService>();
-        _controller = new PredictionsController(_serviceMock.Object, _whatIfServiceMock.Object);
+        _predictionRepositoryMock = new Mock<IPredictionRepository>();
+        _controller = new PredictionsController(_serviceMock.Object, _whatIfServiceMock.Object, _predictionRepositoryMock.Object);
     }
 
     [Fact]
@@ -90,5 +92,47 @@ public class PredictionsControllerTests
 
         var okResult = Assert.IsType<OkObjectResult>(result);
         Assert.Same(predictionResult, okResult.Value);
+    }
+
+    [Fact]
+    public async Task GetHistory_ReturnsItemsFromRepository()
+    {
+        var items = new List<PredictionHistoryListItem>
+        {
+            new(1, "ORD-1", false, "Calculated", "Full", 60, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow, null)
+        };
+        _predictionRepositoryMock
+            .Setup(r => r.GetHistoryAsync(null, 1, 20, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(items);
+
+        var result = await _controller.GetHistory(null, 1, 20, CancellationToken.None);
+
+        Assert.Same(items, Assert.IsType<OkObjectResult>(result.Result).Value);
+    }
+
+    [Fact]
+    public async Task GetHistoryById_WhenFound_ReturnsOk()
+    {
+        var detail = new PredictionHistoryDetail(
+            1, "ORD-1", false, null, "Calculated", "Full", 60,
+            DateTimeOffset.UtcNow, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow, null,
+            null, DateTimeOffset.UtcNow, null, null, null, [], null);
+        _predictionRepositoryMock.Setup(r => r.GetByIdAsync(1, It.IsAny<CancellationToken>())).ReturnsAsync(detail);
+
+        var result = await _controller.GetHistoryById(1, CancellationToken.None);
+
+        Assert.Same(detail, Assert.IsType<OkObjectResult>(result.Result).Value);
+    }
+
+    [Fact]
+    public async Task GetHistoryById_WhenNotFound_ReturnsNotFound()
+    {
+        _predictionRepositoryMock
+            .Setup(r => r.GetByIdAsync(999, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((PredictionHistoryDetail?)null);
+
+        var result = await _controller.GetHistoryById(999, CancellationToken.None);
+
+        Assert.IsType<NotFoundResult>(result.Result);
     }
 }

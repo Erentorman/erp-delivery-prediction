@@ -18,6 +18,7 @@ public sealed class WhatIfPredictionCalculationService : IWhatIfPredictionCalcul
     private readonly PredictionResultMapper _resultMapper;
     private readonly IWhatIfShippingReferenceResolver _shippingReferenceResolver;
     private readonly IShippingRouteLookupService _shippingRouteLookupService;
+    private readonly IPredictionRepository _predictionRepository;
 
     public WhatIfPredictionCalculationService(
         WhatIfPredictionContextBuilder contextBuilder,
@@ -25,7 +26,8 @@ public sealed class WhatIfPredictionCalculationService : IWhatIfPredictionCalcul
         ICriticalPathCalculator criticalPathCalculator,
         PredictionResultMapper resultMapper,
         IWhatIfShippingReferenceResolver shippingReferenceResolver,
-        IShippingRouteLookupService shippingRouteLookupService)
+        IShippingRouteLookupService shippingRouteLookupService,
+        IPredictionRepository predictionRepository)
     {
         _contextBuilder = contextBuilder ?? throw new ArgumentNullException(nameof(contextBuilder));
         _predictionEngine = predictionEngine ?? throw new ArgumentNullException(nameof(predictionEngine));
@@ -33,6 +35,7 @@ public sealed class WhatIfPredictionCalculationService : IWhatIfPredictionCalcul
         _resultMapper = resultMapper ?? throw new ArgumentNullException(nameof(resultMapper));
         _shippingReferenceResolver = shippingReferenceResolver ?? throw new ArgumentNullException(nameof(shippingReferenceResolver));
         _shippingRouteLookupService = shippingRouteLookupService ?? throw new ArgumentNullException(nameof(shippingRouteLookupService));
+        _predictionRepository = predictionRepository ?? throw new ArgumentNullException(nameof(predictionRepository));
     }
 
     public async Task<Result<RuleBasedPredictionResult>> CalculateAsync(
@@ -78,10 +81,30 @@ public sealed class WhatIfPredictionCalculationService : IWhatIfPredictionCalcul
             }
         }
 
-        return _resultMapper.Map(
+        var result = _resultMapper.Map(
             context.OrderInput.OrderReference,
             engineResult,
             criticalPathOutcome,
             shippingDurationMinutes);
+
+        // Persist successful What-If runs distinctly from real order predictions:
+        // no ERP order reference (the synthetic WHATIF-* reference must never be
+        // mistaken for one), simulation input captured instead.
+        if (result.IsSuccess)
+        {
+            await _predictionRepository.SaveAsync(
+                new PredictionPersistenceRequest(
+                    ErpOrderRef: null,
+                    IsSimulation: true,
+                    SimulationInput: new WhatIfSimulationInputSummary(
+                        request.ProductReference,
+                        request.Quantity,
+                        request.LocationReference),
+                    RequestedDeliveryDate: null,
+                    Result: result.Value),
+                cancellationToken);
+        }
+
+        return result;
     }
 }

@@ -16,6 +16,7 @@ public class PredictionCalculationServiceTests
     private readonly Mock<IErpBatchReader> _erpBatchReaderMock;
     private readonly Mock<ICriticalPathCalculator> _cpmMock;
     private readonly Mock<IClock> _clockMock;
+    private readonly Mock<IPredictionRepository> _predictionRepositoryMock;
     private readonly PredictionCalculationService _service;
     private readonly DateTimeOffset _now;
 
@@ -24,6 +25,7 @@ public class PredictionCalculationServiceTests
         _erpBatchReaderMock = new Mock<IErpBatchReader>();
         _cpmMock = new Mock<ICriticalPathCalculator>();
         _clockMock = new Mock<IClock>();
+        _predictionRepositoryMock = new Mock<IPredictionRepository>();
         _now = new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero);
         _clockMock.Setup(c => c.UtcNow).Returns(_now);
 
@@ -48,7 +50,8 @@ public class PredictionCalculationServiceTests
             contextBuilder,
             engine,
             _cpmMock.Object,
-            resultMapper);
+            resultMapper,
+            _predictionRepositoryMock.Object);
     }
 
     [Fact]
@@ -71,6 +74,56 @@ public class PredictionCalculationServiceTests
 
         Assert.False(result.IsSuccess);
         Assert.Equal("Data.Insufficient", result.Error!.Code);
+        _predictionRepositoryMock.Verify(
+            r => r.SaveAsync(It.IsAny<PredictionPersistenceRequest>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task CalculateAsync_WhenSuccessful_PersistsRealOrderPredictionWithErpOrderRef()
+    {
+        var snapshot = CreateValidSnapshot();
+        _erpBatchReaderMock.Setup(r => r.ReadAsync("ORD-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<ErpBatchSnapshot>.Success(snapshot));
+
+        var cpmSchedule = new[] { new OperationSchedule("OP-1", 0, 60, 0, 60, 0) };
+        var cpmResult = new CriticalPathResult(new[] { "OP-1" }, 60, cpmSchedule);
+        _cpmMock.Setup(c => c.Calculate(It.IsAny<PredictionContext>()))
+            .Returns(CriticalPathOutcome.Success(cpmResult));
+
+        PredictionPersistenceRequest? captured = null;
+        _predictionRepositoryMock
+            .Setup(r => r.SaveAsync(It.IsAny<PredictionPersistenceRequest>(), It.IsAny<CancellationToken>()))
+            .Callback<PredictionPersistenceRequest, CancellationToken>((request, _) => captured = request)
+            .Returns(Task.CompletedTask);
+
+        var result = await _service.CalculateAsync("ORD-1");
+
+        Assert.True(result.IsSuccess);
+        _predictionRepositoryMock.Verify(
+            r => r.SaveAsync(It.IsAny<PredictionPersistenceRequest>(), It.IsAny<CancellationToken>()),
+            Times.Once);
+        Assert.NotNull(captured);
+        Assert.Equal("ORD-1", captured!.ErpOrderRef);
+        Assert.False(captured.IsSimulation);
+        Assert.Null(captured.SimulationInput);
+        Assert.Same(result.Value, captured.Result);
+    }
+
+    [Fact]
+    public async Task CalculateAsync_WhenCpmFails_DoesNotPersist()
+    {
+        _erpBatchReaderMock.Setup(r => r.ReadAsync("ORD-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<ErpBatchSnapshot>.Success(CreateValidSnapshot()));
+        _cpmMock.Setup(c => c.Calculate(It.IsAny<PredictionContext>()))
+            .Returns(CriticalPathOutcome.Failure(CriticalPathStatus.CycleDetected, "Cycle detected."));
+
+        var result = await _service.CalculateAsync("ORD-1");
+
+        Assert.False(result.IsSuccess);
+        _predictionRepositoryMock.Verify(
+            r => r.SaveAsync(It.IsAny<PredictionPersistenceRequest>(), It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
     [Fact]

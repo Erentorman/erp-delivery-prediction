@@ -11,19 +11,22 @@ public sealed class PredictionCalculationService : IPredictionCalculationService
     private readonly RuleBasedPredictionEngine _predictionEngine;
     private readonly ICriticalPathCalculator _criticalPathCalculator;
     private readonly PredictionResultMapper _resultMapper;
+    private readonly IPredictionRepository _predictionRepository;
 
     public PredictionCalculationService(
         IErpBatchReader erpBatchReader,
         PredictionContextBuilder contextBuilder,
         RuleBasedPredictionEngine predictionEngine,
         ICriticalPathCalculator criticalPathCalculator,
-        PredictionResultMapper resultMapper)
+        PredictionResultMapper resultMapper,
+        IPredictionRepository predictionRepository)
     {
         _erpBatchReader = erpBatchReader ?? throw new ArgumentNullException(nameof(erpBatchReader));
         _contextBuilder = contextBuilder ?? throw new ArgumentNullException(nameof(contextBuilder));
         _predictionEngine = predictionEngine ?? throw new ArgumentNullException(nameof(predictionEngine));
         _criticalPathCalculator = criticalPathCalculator ?? throw new ArgumentNullException(nameof(criticalPathCalculator));
         _resultMapper = resultMapper ?? throw new ArgumentNullException(nameof(resultMapper));
+        _predictionRepository = predictionRepository ?? throw new ArgumentNullException(nameof(predictionRepository));
     }
 
     public async Task<Result<RuleBasedPredictionResult>> CalculateAsync(string orderReference, CancellationToken cancellationToken = default)
@@ -53,6 +56,21 @@ public sealed class PredictionCalculationService : IPredictionCalculationService
         var cpmOutcome = _criticalPathCalculator.Calculate(engineResult.Context);
 
         // 5-7. Calendar, shipping and result mapping
-        return _resultMapper.Map(orderReference, engineResult, cpmOutcome);
+        var result = _resultMapper.Map(orderReference, engineResult, cpmOutcome);
+
+        // 8. Persist successful, real (order-based) predictions for history/audit/future ML use.
+        if (result.IsSuccess)
+        {
+            await _predictionRepository.SaveAsync(
+                new PredictionPersistenceRequest(
+                    ErpOrderRef: orderReference,
+                    IsSimulation: false,
+                    SimulationInput: null,
+                    RequestedDeliveryDate: context.OrderInput.RequestedDeliveryDate,
+                    Result: result.Value),
+                cancellationToken);
+        }
+
+        return result;
     }
 }
