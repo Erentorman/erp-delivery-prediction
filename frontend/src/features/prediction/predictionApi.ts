@@ -1,8 +1,10 @@
 import { apiClient } from '../../api/client';
 import type {
   CalculatePredictionRequest,
+  FinalPredictionResult,
   MaterialShortage,
   ProblemDetails,
+  ProviderPredictionResult,
   RuleBasedPredictionResult,
   TimelineItem,
   WhatIfPredictionRequest,
@@ -35,6 +37,45 @@ function isTimelineItem(value: unknown): value is TimelineItem {
     && typeof value.isCritical === 'boolean';
 }
 
+function isNullableString(value: unknown): value is string | null {
+  return value === null || typeof value === 'string';
+}
+
+function isNullableNumber(value: unknown): value is number | null {
+  return value === null || (typeof value === 'number' && Number.isFinite(value));
+}
+
+function isNullableStringArray(value: unknown): value is string[] | null {
+  return value === null || isStringArray(value);
+}
+
+function isProviderPredictionResult(value: unknown): value is ProviderPredictionResult {
+  return isRecord(value)
+    && typeof value.providerType === 'string'
+    && typeof value.status === 'string'
+    && isNullableNumber(value.workingLeadTimeMinutes)
+    && isNullableString(value.modelVersion)
+    && isNullableString(value.featureSchemaVersion)
+    && isNullableString(value.trainingDatasetVersion)
+    && isNullableStringArray(value.warnings)
+    && typeof value.durationMs === 'number';
+}
+
+function isFinalPredictionResult(value: unknown): value is FinalPredictionResult {
+  return isRecord(value)
+    && typeof value.status === 'string'
+    && typeof value.fallbackReason === 'string'
+    && isNullableNumber(value.workingLeadTimeMinutes)
+    && isNullableString(value.estimatedStart)
+    && isNullableString(value.estimatedEnd)
+    && isNullableString(value.estimatedDelivery)
+    && isNullableString(value.combinationStrategy)
+    && isNullableNumber(value.ruleBasedWeight)
+    && isNullableNumber(value.aiWeight)
+    && isNullableNumber(value.absoluteDifferenceMinutes)
+    && isNullableNumber(value.relativeDifferencePercent);
+}
+
 export function isRuleBasedPredictionResult(value: unknown): value is RuleBasedPredictionResult {
   return isRecord(value)
     && typeof value.orderReference === 'string'
@@ -46,7 +87,10 @@ export function isRuleBasedPredictionResult(value: unknown): value is RuleBasedP
     && Array.isArray(value.shortages)
     && value.shortages.every(isShortage)
     && Array.isArray(value.timeline)
-    && value.timeline.every(isTimelineItem);
+    && value.timeline.every(isTimelineItem)
+    && isProviderPredictionResult(value.ruleBasedPrediction)
+    && isProviderPredictionResult(value.aiPrediction)
+    && isFinalPredictionResult(value.finalPrediction);
 }
 
 function parseProblemDetails(value: unknown): ProblemDetails {
