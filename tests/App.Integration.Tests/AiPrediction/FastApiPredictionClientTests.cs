@@ -27,10 +27,12 @@ public sealed class FastApiPredictionClientTests
         Assert.Equal(HttpMethod.Post, sent.Method);
         Assert.Equal("/predict", sent.Uri.AbsolutePath);
         using var document = JsonDocument.Parse(sent.Body!);
-        Assert.Equal(17, document.RootElement.EnumerateObject().Count());
-        Assert.Equal(1, document.RootElement.GetProperty("featureSchemaVersion").GetInt32());
-        Assert.Equal("SENTINEL-PRODUCT-908", document.RootElement.GetProperty("productRef").GetString());
-        Assert.Equal(987654.321m, document.RootElement.GetProperty("quantity").GetDecimal());
+        Assert.Equal(2, document.RootElement.EnumerateObject().Count());
+        Assert.Equal("1", document.RootElement.GetProperty("featureSchemaVersion").GetString());
+        var sentFeatures = document.RootElement.GetProperty("features");
+        Assert.Equal(16, sentFeatures.EnumerateObject().Count());
+        Assert.Equal("SENTINEL-PRODUCT-908", sentFeatures.GetProperty("product_ref").GetString());
+        Assert.Equal(987654.321m, sentFeatures.GetProperty("quantity").GetDecimal());
         var log = Assert.Single(logs.Requests);
         Assert.True(log.IsSuccess);
         Assert.Equal(IntegrationType.Ai, log.IntegrationType);
