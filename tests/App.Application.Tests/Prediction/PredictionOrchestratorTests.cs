@@ -12,7 +12,20 @@ public sealed class PredictionOrchestratorTests
         var ai = new DelayedAiProvider();
         var rule = new AssertingRuleProvider(() => ai.Started);
         var repository = new CapturingRepository();
-        var options = new MvpAssumptionsOptions { WorkingCalendar = new() { MinutesPerDay = 480 }, HybridPrediction = new() };
+        var options = new MvpAssumptionsOptions
+        {
+            WorkingCalendar = new()
+            {
+                StartTime = new TimeOnly(8, 0),
+                EndTime = new TimeOnly(17, 0),
+                BreakStartTime = new TimeOnly(12, 0),
+                BreakEndTime = new TimeOnly(13, 0),
+                BreakMinutes = 60,
+                NetMinutesPerDay = 480,
+                WorkingDays = [DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday, DayOfWeek.Friday]
+            },
+            HybridPrediction = new()
+        };
         var orchestrator = new PredictionOrchestrator([rule, ai], new FinalPredictionCombiner(options), repository, options);
 
         var task = orchestrator.ExecuteAsync(Context());

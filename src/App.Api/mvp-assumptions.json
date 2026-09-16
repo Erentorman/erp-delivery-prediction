@@ -1,7 +1,13 @@
 {
   "mvpAssumptions": {
     "workingCalendar": {
-      "minutesPerDay": 480
+      "startTime": "08:00",
+      "endTime": "17:00",
+      "breakStartTime": "12:00",
+      "breakEndTime": "13:00",
+      "breakMinutes": 60,
+      "netMinutesPerDay": 480,
+      "workingDays": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
     },
     "procurement": {
       "fallbackDurationMinutes": 960

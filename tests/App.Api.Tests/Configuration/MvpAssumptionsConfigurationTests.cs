@@ -23,10 +23,23 @@ public class MvpAssumptionsConfigurationTests
 
         var groups = rootProperties[0].Value.EnumerateObject().ToArray();
         Assert.Equal(new[] { "workingCalendar", "procurement", "shipping", "hybridPrediction" }, groups.Select(group => group.Name));
-        AssertSingleProperty(groups[0].Value, "minutesPerDay", JsonValueKind.Number);
+
+        var workingCalendar = groups[0].Value;
+        Assert.Equal(
+            new[] { "startTime", "endTime", "breakStartTime", "breakEndTime", "breakMinutes", "netMinutesPerDay", "workingDays" },
+            workingCalendar.EnumerateObject().Select(property => property.Name));
+        Assert.Equal("08:00", workingCalendar.GetProperty("startTime").GetString());
+        Assert.Equal("17:00", workingCalendar.GetProperty("endTime").GetString());
+        Assert.Equal("12:00", workingCalendar.GetProperty("breakStartTime").GetString());
+        Assert.Equal("13:00", workingCalendar.GetProperty("breakEndTime").GetString());
+        Assert.Equal(60, workingCalendar.GetProperty("breakMinutes").GetInt64());
+        Assert.Equal(480, workingCalendar.GetProperty("netMinutesPerDay").GetInt64());
+        Assert.Equal(
+            new[] { "Monday", "Tuesday", "Wednesday", "Thursday", "Friday" },
+            workingCalendar.GetProperty("workingDays").EnumerateArray().Select(day => day.GetString()));
+
         AssertSingleProperty(groups[1].Value, "fallbackDurationMinutes", JsonValueKind.Number);
         AssertSingleProperty(groups[2].Value, "fallbackDurationMinutes", JsonValueKind.Null);
-        Assert.Equal(480, groups[0].Value.GetProperty("minutesPerDay").GetInt64());
         Assert.Equal(960, groups[1].Value.GetProperty("fallbackDurationMinutes").GetInt64());
         var hybrid = groups[3].Value;
         Assert.Equal(.60m, hybrid.GetProperty("ruleBasedWeight").GetDecimal());
@@ -77,7 +90,15 @@ public class MvpAssumptionsConfigurationTests
         using var provider = services.BuildServiceProvider();
         var options = provider.GetRequiredService<IOptions<MvpAssumptionsOptions>>().Value;
 
-        Assert.Equal(480, options.WorkingCalendar.MinutesPerDay);
+        Assert.Equal(new TimeOnly(8, 0), options.WorkingCalendar.StartTime);
+        Assert.Equal(new TimeOnly(17, 0), options.WorkingCalendar.EndTime);
+        Assert.Equal(new TimeOnly(12, 0), options.WorkingCalendar.BreakStartTime);
+        Assert.Equal(new TimeOnly(13, 0), options.WorkingCalendar.BreakEndTime);
+        Assert.Equal(60, options.WorkingCalendar.BreakMinutes);
+        Assert.Equal(480, options.WorkingCalendar.NetMinutesPerDay);
+        Assert.Equal(
+            [DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday, DayOfWeek.Friday],
+            options.WorkingCalendar.WorkingDays);
         Assert.Equal(960, options.Procurement.FallbackDurationMinutes);
         Assert.Null(options.Shipping.FallbackDurationMinutes);
         Assert.Equal(.60m, options.HybridPrediction.RuleBasedWeight);
@@ -88,26 +109,105 @@ public class MvpAssumptionsConfigurationTests
     }
 
     [Theory]
-    [InlineData(1, 1, null, true)]
-    [InlineData(1, 1, 1, true)]
-    [InlineData(0, 1, null, false)]
-    [InlineData(-1, 1, null, false)]
-    [InlineData(1, 0, null, false)]
-    [InlineData(1, -1, null, false)]
-    [InlineData(1, 1, 0, false)]
-    [InlineData(1, 1, -1, false)]
+    [InlineData(1, null, true)]
+    [InlineData(1, 1, true)]
+    [InlineData(0, null, false)]
+    [InlineData(-1, null, false)]
+    [InlineData(1, 0, false)]
+    [InlineData(1, -1, false)]
     public void OptionsValidation_EnforcesPositiveDurations(
-        long minutesPerDay,
         long procurementFallback,
         int? shippingFallback,
         bool isValid)
     {
+        var values = ValidWorkingCalendarValues();
+        values[$"{MvpAssumptionsOptions.SectionName}:procurement:fallbackDurationMinutes"] = procurementFallback.ToString();
+        values[$"{MvpAssumptionsOptions.SectionName}:shipping:fallbackDurationMinutes"] = shippingFallback?.ToString();
+
+        AssertValidity(values, isValid);
+    }
+
+    [Fact]
+    public void OptionsValidation_AcceptsConsistentWorkingCalendar()
+    {
+        AssertValidity(ValidWorkingCalendarValues(), isValid: true);
+    }
+
+    [Fact]
+    public void OptionsValidation_RejectsStartTimeNotBeforeEndTime()
+    {
+        var values = ValidWorkingCalendarValues();
+        values[$"{MvpAssumptionsOptions.SectionName}:workingCalendar:startTime"] = "17:00";
+        values[$"{MvpAssumptionsOptions.SectionName}:workingCalendar:endTime"] = "08:00";
+
+        AssertValidity(values, isValid: false);
+    }
+
+    [Fact]
+    public void OptionsValidation_RejectsBreakWindowOutsideShift()
+    {
+        var values = ValidWorkingCalendarValues();
+        values[$"{MvpAssumptionsOptions.SectionName}:workingCalendar:breakStartTime"] = "07:00";
+
+        AssertValidity(values, isValid: false);
+    }
+
+    [Fact]
+    public void OptionsValidation_RejectsBreakMinutesMismatch()
+    {
+        var values = ValidWorkingCalendarValues();
+        values[$"{MvpAssumptionsOptions.SectionName}:workingCalendar:breakMinutes"] = "30";
+
+        AssertValidity(values, isValid: false);
+    }
+
+    [Fact]
+    public void OptionsValidation_RejectsNetMinutesPerDayMismatch()
+    {
+        var values = ValidWorkingCalendarValues();
+        values[$"{MvpAssumptionsOptions.SectionName}:workingCalendar:netMinutesPerDay"] = "400";
+
+        AssertValidity(values, isValid: false);
+    }
+
+    [Fact]
+    public void OptionsValidation_RejectsEmptyWorkingDays()
+    {
+        var values = ValidWorkingCalendarValues();
+        values.Remove($"{MvpAssumptionsOptions.SectionName}:workingCalendar:workingDays:0");
+        values.Remove($"{MvpAssumptionsOptions.SectionName}:workingCalendar:workingDays:1");
+        values.Remove($"{MvpAssumptionsOptions.SectionName}:workingCalendar:workingDays:2");
+        values.Remove($"{MvpAssumptionsOptions.SectionName}:workingCalendar:workingDays:3");
+        values.Remove($"{MvpAssumptionsOptions.SectionName}:workingCalendar:workingDays:4");
+
+        AssertValidity(values, isValid: false);
+    }
+
+    private static Dictionary<string, string?> ValidWorkingCalendarValues()
+    {
+        var prefix = $"{MvpAssumptionsOptions.SectionName}:workingCalendar";
+        var workingDays = new[] { "Monday", "Tuesday", "Wednesday", "Thursday", "Friday" };
         var values = new Dictionary<string, string?>
         {
-            [$"{MvpAssumptionsOptions.SectionName}:workingCalendar:minutesPerDay"] = minutesPerDay.ToString(),
-            [$"{MvpAssumptionsOptions.SectionName}:procurement:fallbackDurationMinutes"] = procurementFallback.ToString(),
-            [$"{MvpAssumptionsOptions.SectionName}:shipping:fallbackDurationMinutes"] = shippingFallback?.ToString()
+            [$"{prefix}:startTime"] = "08:00",
+            [$"{prefix}:endTime"] = "17:00",
+            [$"{prefix}:breakStartTime"] = "12:00",
+            [$"{prefix}:breakEndTime"] = "13:00",
+            [$"{prefix}:breakMinutes"] = "60",
+            [$"{prefix}:netMinutesPerDay"] = "480",
+            [$"{MvpAssumptionsOptions.SectionName}:procurement:fallbackDurationMinutes"] = "960",
+            [$"{MvpAssumptionsOptions.SectionName}:shipping:fallbackDurationMinutes"] = null
         };
+        for (var i = 0; i < workingDays.Length; i++)
+        {
+            values[$"{prefix}:workingDays:{i}"] = workingDays[i];
+        }
+
+        return values;
+    }
+
+    private static void AssertValidity(Dictionary<string, string?> values, bool isValid)
+    {
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(values).Build();
         var services = new ServiceCollection();
         services.AddMvpAssumptionsOptions(configuration);

@@ -157,7 +157,16 @@ public sealed class DemoWorkOrderWhatIfTests
             clock.Setup(value => value.UtcNow).Returns(Now);
             var options = new MvpAssumptionsOptions
             {
-                WorkingCalendar = new WorkingCalendarAssumptionsOptions { MinutesPerDay = 480 },
+                WorkingCalendar = new WorkingCalendarAssumptionsOptions
+                {
+                    StartTime = new TimeOnly(8, 0),
+                    EndTime = new TimeOnly(17, 0),
+                    BreakStartTime = new TimeOnly(12, 0),
+                    BreakEndTime = new TimeOnly(13, 0),
+                    BreakMinutes = 60,
+                    NetMinutesPerDay = 480,
+                    WorkingDays = [DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday, DayOfWeek.Friday]
+                },
                 Procurement = new ProcurementAssumptionsOptions { FallbackDurationMinutes = 960 },
                 Shipping = new ShippingAssumptionsOptions { FallbackDurationMinutes = 1440 }
             };
