@@ -19,11 +19,19 @@ public sealed class DemoWorkOrderSnapshotEnricher
             return snapshot;
         }
 
-        var productReference = snapshot.OrderItems.FirstOrDefault()?.ProductReference;
+        var orderItem = snapshot.OrderItems.FirstOrDefault();
+        var productReference = orderItem?.ProductReference;
         if (productReference is null)
         {
             return snapshot;
         }
+
+        // Defensive floor: OrderedQuantity should always be positive for a real
+        // order line, but a zero/negative value must not collapse the demo
+        // routing to a zero-minute (or negative) duration.
+        var effectiveQuantity = Math.Max(1m, orderItem!.OrderedQuantity);
+        var op10Duration = (long)Math.Round(60m * effectiveQuantity, MidpointRounding.AwayFromZero);
+        var op20Duration = (long)Math.Round(45m * effectiveQuantity, MidpointRounding.AwayFromZero);
 
         var demoWorkOrder = new WorkOrderReadDto(
             WorkOrderReference,
@@ -34,8 +42,8 @@ public sealed class DemoWorkOrderSnapshotEnricher
                 "DEMO-ROUTING-001",
                 new List<OperationReadDto>
                 {
-                    new("DEMO-OP-10", 10, "DEMO-WC-001", 60, Array.Empty<string>()),
-                    new("DEMO-OP-20", 20, "DEMO-WC-001", 45, new[] { "DEMO-OP-10" }),
+                    new("DEMO-OP-10", 10, "DEMO-WC-001", op10Duration, Array.Empty<string>()),
+                    new("DEMO-OP-20", 20, "DEMO-WC-001", op20Duration, new[] { "DEMO-OP-10" }),
                 }));
 
         return snapshot with { WorkOrders = new List<WorkOrderReadDto> { demoWorkOrder } };
