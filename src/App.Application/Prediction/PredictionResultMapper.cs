@@ -62,7 +62,7 @@ public sealed class PredictionResultMapper
 
         var cpmResult = criticalPathOutcome.Result!;
         var estimatedStart = _clock.UtcNow;
-        var calendar = new WorkingCalendar(_options.WorkingCalendar.MinutesPerDay);
+        var calendar = CreateCalendar(_options.WorkingCalendar);
         var estimatedEnd = calendar.AddWorkingMinutes(estimatedStart, cpmResult.TotalWorkingMinutes);
 
         var shippingResult = _shippingResolver.ResolveShippingDuration(explicitShippingDurationMinutes, _options);
@@ -95,4 +95,12 @@ public sealed class PredictionResultMapper
                 engineResult.MaterialShortages,
                 timeline));
     }
+
+    private static WorkingCalendar CreateCalendar(WorkingCalendarAssumptionsOptions options) => new(
+        options.StartTime,
+        options.EndTime,
+        options.BreakStartTime,
+        options.BreakEndTime,
+        options.NetMinutesPerDay,
+        options.WorkingDays);
 }

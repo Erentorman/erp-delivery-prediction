@@ -16,7 +16,16 @@ public sealed class RuleBasedPredictionProviderTests
         var clock = Mock.Of<IClock>(x => x.UtcNow == now);
         var options = new MvpAssumptionsOptions
         {
-            WorkingCalendar = new() { MinutesPerDay = 480 },
+            WorkingCalendar = new()
+            {
+                StartTime = new TimeOnly(8, 0),
+                EndTime = new TimeOnly(17, 0),
+                BreakStartTime = new TimeOnly(12, 0),
+                BreakEndTime = new TimeOnly(13, 0),
+                BreakMinutes = 60,
+                NetMinutesPerDay = 480,
+                WorkingDays = [DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday, DayOfWeek.Friday]
+            },
             Procurement = new() { FallbackDurationMinutes = 960 },
             Shipping = new() { FallbackDurationMinutes = 60 }
         };
@@ -39,7 +48,16 @@ public sealed class RuleBasedPredictionProviderTests
         var clock = Mock.Of<IClock>(x => x.UtcNow == DateTimeOffset.UtcNow);
         var options = new MvpAssumptionsOptions
         {
-            WorkingCalendar = new() { MinutesPerDay = 480 },
+            WorkingCalendar = new()
+            {
+                StartTime = new TimeOnly(8, 0),
+                EndTime = new TimeOnly(17, 0),
+                BreakStartTime = new TimeOnly(12, 0),
+                BreakEndTime = new TimeOnly(13, 0),
+                BreakMinutes = 60,
+                NetMinutesPerDay = 480,
+                WorkingDays = [DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday, DayOfWeek.Friday]
+            },
             Procurement = new() { FallbackDurationMinutes = 960 }
         };
         var provider = new RuleBasedPredictionProvider(

@@ -50,7 +50,16 @@ public sealed class PredictionCalculationServiceTests
 
     private static MvpAssumptionsOptions Options() => new()
     {
-        WorkingCalendar = new() { MinutesPerDay = 480 },
+        WorkingCalendar = new()
+        {
+            StartTime = new TimeOnly(8, 0),
+            EndTime = new TimeOnly(17, 0),
+            BreakStartTime = new TimeOnly(12, 0),
+            BreakEndTime = new TimeOnly(13, 0),
+            BreakMinutes = 60,
+            NetMinutesPerDay = 480,
+            WorkingDays = [DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday, DayOfWeek.Friday]
+        },
         Procurement = new() { FallbackDurationMinutes = 960 },
         HybridPrediction = new()
     };

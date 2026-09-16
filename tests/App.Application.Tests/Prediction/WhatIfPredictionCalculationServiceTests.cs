@@ -112,7 +112,10 @@ public sealed class WhatIfPredictionCalculationServiceTests
         Assert.True(result.IsSuccess);
         Assert.Equal("WHATIF-PROD-1", result.Value.OrderReference);
         Assert.Equal(Now, result.Value.EstimatedStart);
-        Assert.Equal(Now.AddMinutes(60), result.Value.EstimatedEnd);
+        // Now is exactly 12:00 (the configured break start) — T-912's shift-aware
+        // WorkingCalendar snaps forward to break end (13:00) before counting minutes,
+        // so 60 working minutes lands at 14:00, not a plain Now.AddMinutes(60).
+        Assert.Equal(new DateTimeOffset(2026, 8, 6, 14, 0, 0, TimeSpan.Zero), result.Value.EstimatedEnd);
         Assert.Single(result.Value.Timeline);
         Assert.Equal("OP-1", result.Value.Timeline[0].OperationRef);
         Assert.True(result.Value.Timeline[0].IsCritical);
@@ -280,7 +283,16 @@ public sealed class WhatIfPredictionCalculationServiceTests
             clock.Setup(value => value.UtcNow).Returns(Now);
             var options = new MvpAssumptionsOptions
             {
-                WorkingCalendar = new WorkingCalendarAssumptionsOptions { MinutesPerDay = 480 },
+                WorkingCalendar = new WorkingCalendarAssumptionsOptions
+                {
+                    StartTime = new TimeOnly(8, 0),
+                    EndTime = new TimeOnly(17, 0),
+                    BreakStartTime = new TimeOnly(12, 0),
+                    BreakEndTime = new TimeOnly(13, 0),
+                    BreakMinutes = 60,
+                    NetMinutesPerDay = 480,
+                    WorkingDays = [DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday, DayOfWeek.Friday]
+                },
                 Procurement = new ProcurementAssumptionsOptions { FallbackDurationMinutes = 960 },
                 Shipping = new ShippingAssumptionsOptions { FallbackDurationMinutes = 1440 }
             };

@@ -45,10 +45,18 @@ public sealed class PredictionOrchestrator
                 EstimatedEnd = rule.RuleBasedPrediction.EstimatedEnd,
                 EstimatedDelivery = rule.RuleBasedPrediction.EstimatedDelivery };
 
-        var calendar = new WorkingCalendar(_options.WorkingCalendar.MinutesPerDay);
+        var calendar = CreateCalendar(_options.WorkingCalendar);
         var start = rule.RuleBasedPrediction.EstimatedStart;
         var end = calendar.AddWorkingMinutes(start, minutes);
         var shipping = rule.RuleBasedPrediction.EstimatedDelivery - rule.RuleBasedPrediction.EstimatedEnd;
         return final with { EstimatedStart = start, EstimatedEnd = end, EstimatedDelivery = end.Add(shipping) };
     }
+
+    private static WorkingCalendar CreateCalendar(WorkingCalendarAssumptionsOptions options) => new(
+        options.StartTime,
+        options.EndTime,
+        options.BreakStartTime,
+        options.BreakEndTime,
+        options.NetMinutesPerDay,
+        options.WorkingDays);
 }
