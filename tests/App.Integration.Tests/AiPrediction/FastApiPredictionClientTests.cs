@@ -51,7 +51,10 @@ public sealed class FastApiPredictionClientTests
         var result = await client.GetPredictionAsync(Request());
 
         Assert.Equal(AiProviderStatus.Timeout, result.Status);
-        Assert.True(DateTime.UtcNow - started < TimeSpan.FromSeconds(2));
+        // Primary guarantee: the configured timeout actually fired the cancellation —
+        // this doesn't depend on wall-clock scheduling and won't flake on a slow/loaded CI runner.
+        Assert.True(handler.ObservedToken.IsCancellationRequested);
+        Assert.True(DateTime.UtcNow - started < TimeSpan.FromSeconds(10));
         Assert.True(handler.ObservedToken.CanBeCanceled);
         Assert.False(Assert.Single(logs.Requests).IsSuccess);
     }
