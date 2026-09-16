@@ -2,7 +2,8 @@ import { Box, Card, CardContent, Chip, Divider, Typography } from '@mui/material
 import WarningAmberOutlinedIcon from '@mui/icons-material/WarningAmberOutlined';
 import LocalShippingOutlinedIcon from '@mui/icons-material/LocalShippingOutlined';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
-import type { RuleBasedPredictionResult, TimelineItem } from './predictionContracts';
+import AutoAwesomeOutlinedIcon from '@mui/icons-material/AutoAwesomeOutlined';
+import type { FinalPredictionResult, ProviderPredictionResult, RuleBasedPredictionResult, TimelineItem } from './predictionContracts';
 
 export function hasSyntheticDemoData(result: RuleBasedPredictionResult): boolean {
   return result.criticalPathOperations.some((ref) => ref.startsWith('DEMO-'))
@@ -39,6 +40,59 @@ const displayDate = (value: string) => {
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
 };
+
+function formatMinutes(minutes: number | null): string {
+  return minutes === null ? '—' : `${Math.round(minutes).toLocaleString('tr-TR')} dk`;
+}
+
+const providerStatusLabels: Record<string, string> = {
+  Success: 'Başarılı',
+  Timeout: 'Zaman Aşımı',
+  ServiceUnavailable: 'Servis Kullanılamıyor',
+  InvalidResponse: 'Geçersiz Yanıt',
+  InsufficientFeatures: 'Yetersiz Veri',
+  ModelUnavailable: 'Model Kullanılamıyor',
+  VersionMismatch: 'Sürüm Uyuşmazlığı',
+  Rejected: 'Reddedildi',
+  HybridCalculated: 'Harmanlandı',
+  RuleBasedFallback: 'Rule-Based (Fallback)',
+  AiOnlyCandidate: 'Yalnızca AI (Aday)',
+  InsufficientData: 'Yetersiz Veri',
+};
+
+const successLikeStatuses = new Set(['Success', 'HybridCalculated']);
+
+function providerStatusLabel(status: string): string {
+  return providerStatusLabels[status] ?? status;
+}
+
+// AI can genuinely fail to answer (Timeout/ServiceUnavailable/ModelUnavailable/
+// InsufficientFeatures/InvalidResponse), or it can succeed but still be excluded
+// from the hybrid blend because its value was rejected/out of tolerance. These
+// are different situations for the user and must not both read as "AI failed".
+function aiFallbackMessage(finalPrediction: FinalPredictionResult, aiPrediction: ProviderPredictionResult): string {
+  const aiValue = formatMinutes(aiPrediction.workingLeadTimeMinutes);
+  switch (finalPrediction.fallbackReason) {
+    case 'AiPredictionOutsideTolerance':
+      return `AI bir tahmin üretti (${aiValue}) ancak Rule-Based sonucundan çok farklı çıktığı için (tolerans aşıldı) nihai sonuca dahil edilmedi. Yalnızca Rule-Based sonucu kullanılıyor.`;
+    case 'InvalidAiValue':
+      return `AI bir yanıt döndürdü ancak değeri geçersiz kabul edildiği için nihai sonuca dahil edilmedi. Yalnızca Rule-Based sonucu kullanılıyor.`;
+    case 'AiPredictionTimeout':
+      return 'AI servisi zaman aşımına uğradığı için bu tahminde bir sonuç üretemedi. Yalnızca Rule-Based sonucu kullanılıyor.';
+    case 'AiServiceUnavailable':
+      return 'AI servisine şu anda ulaşılamadığı için bu tahminde bir sonuç üretemedi. Yalnızca Rule-Based sonucu kullanılıyor.';
+    case 'AiModelUnavailable':
+      return 'AI modeli şu anda kullanılamadığı için bu tahminde bir sonuç üretemedi. Yalnızca Rule-Based sonucu kullanılıyor.';
+    case 'InsufficientAiFeatures':
+      return 'AI tahmini için gerekli veriler yetersiz olduğundan bu tahminde bir sonuç üretemedi. Yalnızca Rule-Based sonucu kullanılıyor.';
+    case 'InvalidAiResponse':
+      return 'AI servisi bu istekte uyumsuz/geçersiz bir yanıt döndürdüğü için sonuç kullanılamadı. Yalnızca Rule-Based sonucu kullanılıyor.';
+    default:
+      return aiPrediction.status === 'Success'
+        ? 'AI bir tahmin üretti ancak nihai sonuca dahil edilmedi. Yalnızca Rule-Based sonucu kullanılıyor.'
+        : 'AI bu tahminde bir sonuç üretemedi. Yalnızca Rule-Based sonucu kullanılıyor.';
+  }
+}
 
 const EmptyMessage = ({ children }: { children: string }) =>
   <Typography sx={{ fontSize: '13px', color: 'textSecondary' }}>{children}</Typography>;
@@ -86,6 +140,132 @@ function DemoDataBanner() {
         Sentetik demo veri kullanılıyor. Bu operasyonlar ERP tarafından doğrulanmamıştır.
       </Typography>
     </Box>
+  );
+}
+
+function AiFallbackBanner({ finalPrediction, aiPrediction }: { finalPrediction: FinalPredictionResult; aiPrediction: ProviderPredictionResult }) {
+  return (
+    <Box
+      role="alert"
+      sx={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 1.5,
+        mb: 3,
+        p: 1.75,
+        borderRadius: 2,
+        borderLeft: '4px solid',
+        borderLeftColor: 'statusWarning.text',
+        bgcolor: 'statusWarning.bg',
+        border: '1px solid',
+        borderColor: 'statusWarning.border',
+      }}
+    >
+      <Box
+        sx={{
+          width: 30,
+          height: 30,
+          flexShrink: 0,
+          borderRadius: '50%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          bgcolor: 'statusWarning.text',
+        }}
+      >
+        <WarningAmberOutlinedIcon sx={{ fontSize: 17, color: '#fff' }} />
+      </Box>
+      <Typography sx={{ fontSize: '13px', fontWeight: 600, color: 'statusWarning.text' }}>
+        {aiFallbackMessage(finalPrediction, aiPrediction)}
+      </Typography>
+    </Box>
+  );
+}
+
+function ProviderResultCard({
+  title,
+  provider,
+  highlight = false,
+}: {
+  title: string;
+  provider: ProviderPredictionResult;
+  highlight?: boolean;
+}) {
+  const isSuccess = successLikeStatuses.has(provider.status);
+  return (
+    <Box
+      sx={{
+        flex: 1,
+        minWidth: 160,
+        p: 1.75,
+        borderRadius: 2,
+        border: '1px solid',
+        borderColor: highlight ? 'interactiveBlue' : 'divider',
+        bgcolor: (theme) => (highlight
+          ? (theme.palette.mode === 'dark' ? 'rgba(77,142,255,0.08)' : 'rgba(37,99,235,0.05)')
+          : 'transparent'),
+      }}
+    >
+      <Typography sx={{ fontSize: '12px', fontWeight: 700, color: 'textMuted', textTransform: 'uppercase' }}>
+        {title}
+      </Typography>
+      <Typography sx={{ fontSize: '20px', fontWeight: 800, color: 'textPrimary', mt: 0.5 }}>
+        {formatMinutes(provider.workingLeadTimeMinutes)}
+      </Typography>
+      <Chip
+        size="small"
+        label={providerStatusLabel(provider.status)}
+        sx={{
+          mt: 0.75,
+          height: 20,
+          fontSize: '10.5px',
+          bgcolor: isSuccess ? 'statusSuccess.bg' : 'statusWarning.bg',
+          color: isSuccess ? 'statusSuccess.text' : 'statusWarning.text',
+          border: '1px solid',
+          borderColor: isSuccess ? 'statusSuccess.border' : 'statusWarning.border',
+        }}
+      />
+      {provider.modelVersion && (
+        <Typography sx={{ fontSize: '10.5px', color: 'textMuted', mt: 0.75 }}>
+          Model: {provider.modelVersion}
+        </Typography>
+      )}
+    </Box>
+  );
+}
+
+function ProviderResultsSection({ result }: { result: RuleBasedPredictionResult }) {
+  const { ruleBasedPrediction, aiPrediction, finalPrediction } = result;
+  const isHybrid = finalPrediction.status === 'HybridCalculated';
+  return (
+    <Card sx={{ mb: 3 }}><CardContent>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+        <AutoAwesomeOutlinedIcon sx={{ fontSize: 20, color: 'interactiveBlue' }} />
+        <Typography component="h2" sx={{ fontSize: '15px', fontWeight: 700, color: 'textPrimary' }}>
+          Tahmin Kaynakları
+        </Typography>
+      </Box>
+      <Divider sx={{ mb: 2 }} />
+      {!isHybrid && <AiFallbackBanner finalPrediction={finalPrediction} aiPrediction={aiPrediction} />}
+      <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+        <ProviderResultCard title="Rule-Based" provider={ruleBasedPrediction} highlight={!isHybrid} />
+        <ProviderResultCard title="AI" provider={aiPrediction} />
+        <ProviderResultCard
+          title="Final (Hybrid)"
+          provider={{
+            providerType: 'Final',
+            status: finalPrediction.status,
+            workingLeadTimeMinutes: finalPrediction.workingLeadTimeMinutes,
+            modelVersion: null,
+            featureSchemaVersion: null,
+            trainingDatasetVersion: null,
+            warnings: null,
+            durationMs: 0,
+          }}
+          highlight={isHybrid}
+        />
+      </Box>
+    </CardContent></Card>
   );
 }
 
@@ -214,6 +394,8 @@ export default function PredictionResultView({ result }: { result: RuleBasedPred
         </Box>
       </Box>
     </CardContent></Card>
+
+    <ProviderResultsSection result={result} />
 
     <Card sx={{ mb: 3 }}><CardContent>
       <SectionHeading>Kritik Yol</SectionHeading>

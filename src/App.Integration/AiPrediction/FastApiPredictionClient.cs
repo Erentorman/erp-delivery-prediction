@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -200,21 +201,22 @@ internal sealed class FastApiPredictionClient : IAiPredictionClient
     };
 
     private static FastApiPredictionRequest MapRequest(AiFeaturePayload features) => new(
-        features.FeatureSchemaVersion,
-        features.ProductRef,
-        features.ProductCategory,
-        features.Quantity,
-        features.BomItemCount,
-        features.MissingMaterialCount,
-        features.TotalMissingQuantity,
-        features.MaximumSupplierLeadTimeDays,
-        features.OperationCount,
-        features.TotalStandardOperationMinutes,
-        features.WorkCenterLoadRatio,
-        features.ActiveWorkOrderCount,
-        features.ShiftCapacityMinutes,
-        features.HolidayCount,
-        features.PlannedDowntimeMinutes,
-        features.ShippingDurationMinutes,
-        features.RequestedDeliveryLeadMinutes);
+        features.FeatureSchemaVersion.ToString(CultureInfo.InvariantCulture),
+        new FastApiPredictionFeatures(
+            features.ProductRef,
+            features.ProductCategory,
+            features.Quantity,
+            features.BomItemCount,
+            features.MissingMaterialCount,
+            features.TotalMissingQuantity,
+            features.MaximumSupplierLeadTimeDays,
+            features.OperationCount,
+            features.TotalStandardOperationMinutes,
+            features.WorkCenterLoadRatio,
+            features.ActiveWorkOrderCount,
+            features.ShiftCapacityMinutes,
+            features.HolidayCount,
+            features.PlannedDowntimeMinutes,
+            features.ShippingDurationMinutes,
+            features.RequestedDeliveryLeadMinutes));
 }

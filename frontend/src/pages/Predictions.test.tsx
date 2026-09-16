@@ -20,6 +20,22 @@ const result: RuleBasedPredictionResult = {
   appliedFallbackReasons: ['Default shipping duration'],
   shortages: [{ productReference: 'STEEL-1', shortageQuantity: 4 }],
   timeline: [{ operationRef: 'CUT-10', estimatedStart: '2026-08-05T08:00:00Z', estimatedEnd: '2026-08-06T08:00:00Z', isCritical: true }],
+  ruleBasedPrediction: {
+    providerType: 'RuleBased', status: 'Success', workingLeadTimeMinutes: 480,
+    modelVersion: null, featureSchemaVersion: null, trainingDatasetVersion: null,
+    warnings: null, durationMs: 5,
+  },
+  aiPrediction: {
+    providerType: 'Ai', status: 'Success', workingLeadTimeMinutes: 510,
+    modelVersion: 'xgb-v0.1', featureSchemaVersion: '1', trainingDatasetVersion: 'synthetic-v1',
+    warnings: [], durationMs: 20,
+  },
+  finalPrediction: {
+    status: 'HybridCalculated', fallbackReason: 'None', workingLeadTimeMinutes: 492,
+    estimatedStart: '2026-08-05T08:00:00Z', estimatedEnd: '2026-08-06T08:00:00Z', estimatedDelivery: '2026-08-07T08:00:00Z',
+    combinationStrategy: 'WeightedAverage', ruleBasedWeight: 0.6, aiWeight: 0.4,
+    absoluteDifferenceMinutes: 30, relativeDifferencePercent: 6.25,
+  },
 };
 
 const demoCriticalPathResult: RuleBasedPredictionResult = {
